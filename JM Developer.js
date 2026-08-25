@@ -1,0 +1,17605 @@
+/*====================================================
+        PASO 0
+        CARGAR CONFIGURACIÓN
+====================================================*/
+
+let configuracion = {};
+
+async function cargarConfiguracion() {
+
+    try {
+
+        const respuesta = await fetch("/config", {
+            cache: "no-store"
+        });
+
+        if(!respuesta.ok){
+
+            throw new Error(
+                `HTTP ${respuesta.status}`
+            );
+
+        }
+
+        configuracion = await respuesta.json();
+
+    } catch (error) {
+
+        console.error(
+            "Error cargando configuración:",
+            error
+        );
+
+        configuracion = {};
+
+    }
+
+}
+
+
+
+/*====================================================
+        PASO 1
+        RESTAURAR TEMA
+====================================================*/
+
+function restaurarTema() {
+
+    if (configuracion.theme === "dark") {
+
+        document.body.classList.add("dark");
+
+    } else {
+
+        document.body.classList.remove("dark");
+
+    }
+
+}
+
+
+/*====================================================
+                PASO 2
+            RESTAURAR LOGO
+====================================================*/
+
+function restaurarLogo() {
+
+    // Si existe un logo guardado
+    if (configuracion.logo) {
+
+        logo.src = configuracion.logo;
+        favicon.href = configuracion.logo;
+
+    }
+
+    // Restaurar tamaño del logo
+    actualizarTamanoLogo(
+        configuracion.logoSize || 150
+    );
+
+    const box1 =
+        document.getElementById("box1");
+
+    const fondoLogo =
+        configuracion.logoBackgroundColor ||
+        "transparent";
+
+    if(box1){
+        box1.style.setProperty(
+            "--logo-background",
+            fondoLogo
+        );
+    }
+
+    const logoBackgroundColor =
+        document.getElementById("logoBackgroundColor");
+
+    if(logoBackgroundColor){
+        const valor =
+            fondoLogo === "transparent"
+                ? "#ffffff"
+                : fondoLogo;
+
+        logoBackgroundColor.value =
+            rgbObjetoAHex(
+                obtenerRGBDesdeColor(valor)
+            );
+
+        logoBackgroundColor.dataset.colorFinal =
+            fondoLogo;
+    }
+
+}
+
+
+
+/*====================================================
+    CONVERTIR RGB A HEX
+====================================================*/
+
+function convertirRgbAHex(color){
+
+    if(!color) return "#000000";
+
+    // Si ya viene en HEX
+    if(color.startsWith("#")){
+        return color;
+    }
+
+    const valores = color.match(/\d+/g);
+
+    if(!valores || valores.length < 3){
+        return "#000000";
+    }
+
+    const r = parseInt(valores[0]).toString(16).padStart(2,"0");
+    const g = parseInt(valores[1]).toString(16).padStart(2,"0");
+    const b = parseInt(valores[2]).toString(16).padStart(2,"0");
+
+    return `#${r}${g}${b}`;
+
+}
+
+
+/*==================================================
+        TAMAÑOS DEL LOGO
+==================================================*/
+
+function actualizarTamanoLogo(valor){
+
+    // Cambia el tamaño del logo
+    logo.style.width = valor + "px";
+    logo.style.height = valor + "px";
+
+    // Cambia el tamaño del aro de colores
+    const box1 = document.getElementById("box1");
+
+    if(box1){
+
+        box1.style.setProperty(
+            "--logo-size",
+            valor + "px"
+        );
+
+    }
+
+    // Actualiza el slider
+    logoSize.value = valor;
+
+    logoSizeValue.innerHTML = valor + " px";
+
+}
+
+/*====================================================
+            CONVERSIÓN DE COLORES
+====================================================*/
+
+/**
+ * Convierte un color HEX (#RRGGBB) a RGB
+ * Ejemplo:
+ * #00D2FF -> rgb(0, 210, 255)
+ */
+function hexToRgb(hex){
+
+    hex = hex.replace("#","");
+
+    if(hex.length !== 6){
+
+        return "";
+
+    }
+
+    const r = parseInt(hex.substring(0,2),16);
+    const g = parseInt(hex.substring(2,4),16);
+    const b = parseInt(hex.substring(4,6),16);
+
+    return `rgb(${r}, ${g}, ${b})`;
+
+}
+
+/**
+ * Convierte un RGB a HEX
+ * Ejemplo:
+ * rgb(0,210,255) -> #00D2FF
+ */
+function rgbToHex(rgb){
+
+    const numeros = rgb.match(/\d+/g);
+
+    if(!numeros || numeros.length < 3){
+
+        return null;
+
+    }
+
+    const r = Number(numeros[0]);
+    const g = Number(numeros[1]);
+    const b = Number(numeros[2]);
+
+    return "#" +
+
+    [r,g,b]
+
+    .map(valor=>{
+
+        const hex = valor.toString(16);
+
+        return hex.length===1
+
+            ? "0"+hex
+
+            : hex;
+
+    })
+
+    .join("")
+
+    .toUpperCase();
+
+}
+
+/*====================================================
+        CONVERTIR HEX A OBJETO RGB
+====================================================*/
+
+function hexToRgbObject(hex){
+
+    const rgb = hexToRgb(hex);
+
+    const numeros = rgb.match(/\d+/g);
+
+    return {
+
+        r: Number(numeros[0]),
+
+        g: Number(numeros[1]),
+
+        b: Number(numeros[2])
+
+    };
+
+}
+
+/*====================================================
+        ACTUALIZAR TEXTO DEL COLOR
+====================================================*/
+
+
+function actualizarTextoColor(
+
+    picker,
+    texto,
+    formato,
+    alpha = null,
+    preview = null
+
+){
+
+    const rgb = hexToRgbObject(
+
+        picker.value
+
+    );
+
+    let transparencia = 1;
+
+    if(alpha){
+
+        transparencia =
+
+            alpha.value / 100;
+
+    }
+
+    if(formato.value==="hex"){
+
+        texto.value =
+
+            picker.value.toUpperCase();
+
+    }
+
+    else if(transparencia===1){
+
+        texto.value =
+
+            `rgb( ${rgb.r}, ${rgb.g}, ${rgb.b})`;
+
+    }
+
+    else{
+
+        texto.value =
+
+            `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${transparencia.toFixed(2)})`;
+
+    }
+
+    if(preview){
+
+        preview.style.background =
+
+            `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${transparencia})`;
+
+    }
+
+}
+
+
+
+
+
+/*====================================================
+        EDITOR DE COLOR REUTILIZABLE
+====================================================*/
+
+function crearEditorColor(
+    picker,
+    texto,
+    formato,
+    alCambiar = null
+){
+
+    if(!picker || !texto || !formato){
+
+        console.warn(
+            "crearEditorColor(): faltan elementos del editor."
+        );
+
+        return;
+
+    }
+
+
+    /*=========================================
+        FUNCIÓN INTERNA PARA ACTUALIZAR
+    =========================================*/
+
+    function actualizar(){
+
+        actualizarTextoColor(
+            picker,
+            texto,
+            formato
+        );
+
+        if(typeof alCambiar === "function"){
+
+            alCambiar(
+                picker.value,
+                picker
+            );
+
+        }
+
+    }
+
+
+    /*=========================================
+        CAMBIAR DESDE SELECTOR
+    =========================================*/
+
+    picker.oninput = ()=>{
+
+        actualizar();
+
+    };
+
+
+    /*=========================================
+        CAMBIAR FORMATO
+    =========================================*/
+
+    formato.onchange = ()=>{
+
+        actualizarTextoColor(
+            picker,
+            texto,
+            formato
+        );
+
+    };
+
+
+    /*=========================================
+        ESCRIBIR MANUALMENTE
+    =========================================*/
+
+    texto.oninput = ()=>{
+
+        const valor =
+            texto.value.trim();
+
+
+        /*==============================
+                FORMATO HEX
+        ==============================*/
+
+        if(formato.value === "hex"){
+
+            if(/^#[0-9A-F]{6}$/i.test(valor)){
+
+                texto.style.border = "";
+
+                picker.value =
+                    valor.toUpperCase();
+
+                if(typeof alCambiar === "function"){
+
+                    alCambiar(
+                        picker.value,
+                        picker
+                    );
+
+                }
+
+            }
+
+            else{
+
+                texto.style.border =
+                    "2px solid red";
+
+            }
+
+            return;
+
+        }
+
+
+        /*==============================
+                FORMATO RGB
+        ==============================*/
+
+        const hex =
+            rgbToHex(valor);
+
+
+        if(hex){
+
+            texto.style.border = "";
+
+            picker.value = hex;
+
+            if(typeof alCambiar === "function"){
+
+                alCambiar(
+                    picker.value,
+                    picker
+                );
+
+            }
+
+        }
+
+        else{
+
+            texto.style.border =
+                "2px solid red";
+
+        }
+
+    };
+
+
+    /*=========================================
+            APLICAR CON ENTER
+    =========================================*/
+
+    texto.addEventListener(
+        "keydown",
+        (e)=>{
+
+            if(e.key === "Enter"){
+
+                e.preventDefault();
+
+                texto.blur();
+
+            }
+
+        }
+    );
+
+}
+
+
+/*====================================================
+        APLICAR COLORES EN TIEMPO REAL
+====================================================*/
+
+function aplicarColores(){
+
+    configuracion.text =
+        titleColor.dataset.colorFinal || titleColor.value;
+
+    configuracion.textSecondary =
+        subtitleColor.dataset.colorFinal || subtitleColor.value;
+
+    document.documentElement.style.setProperty(
+
+        "--text",
+
+        configuracion.text
+
+    );
+
+    document.documentElement.style.setProperty(
+
+        "--text-secondary",
+
+        configuracion.textSecondary
+
+    );
+
+}
+
+/*====================================================
+                PASO 3
+        RESTAURAR TÍTULO Y SUBTÍTULO
+====================================================*/
+
+function restaurarTitulo() {
+
+    // Restaurar título de la pestaña
+    document.title = configuracion.title || "";
+
+    // Restaurar título principal
+    title.childNodes[0].textContent =
+        (configuracion.title || "") + " ";
+
+    // Restaurar subtítulo
+    subtitle.childNodes[0].textContent =
+        (configuracion.subtitle || "") + " ";
+
+    // Restaurar descripción en el textarea
+    profileDescription.value =
+        configuracion.description || "";
+
+    // Restaurar descripción en la tarjeta
+    const description = document.getElementById("description");
+
+    if (description) {
+        description.textContent =
+            configuracion.description || "";
+    }
+
+/*====================================================
+    RESTAURAR ESTILO DE LA DESCRIPCIÓN
+====================================================*/
+
+if (description) {
+
+    description.style.textAlign =
+        configuracion.descriptionAlign || "justify";
+
+
+
+ if (document.body.classList.contains("dark")) {
+
+    description.style.color = "#ffffff";
+
+} else {
+
+    description.style.color =
+        configuracion.descriptionTextColor || "#ffffff";
+
+}
+
+
+   if (document.body.classList.contains("dark")) {
+
+    description.style.backgroundColor = "#2b2b2b";
+
+} else {
+
+    description.style.backgroundColor =
+        configuracion.descriptionBackgroundColor || "rgba(37,37,37,.65)";
+
+}
+
+    if (description.style.textAlign === "center") {
+
+        description.style.textAlignLast = "center";
+
+    } else {
+
+        description.style.textAlignLast = "left";
+
+    }
+
+}
+
+    // Contador
+    contadorDescripcion.textContent =
+        profileDescription.value.length + " / 220";
+
+    // Restaurar fuentes por separado
+    if (configuracion.titleFont) {
+
+        title.style.fontFamily =
+            configuracion.titleFont;
+
+        subtitle.style.fontFamily =
+            configuracion.titleFont;
+    }
+
+    /* Restaurar alineación del título y subtítulo */
+    title.style.textAlign =
+        configuracion.titleAlign || "center";
+
+    subtitle.style.textAlign =
+        configuracion.subtitleAlign || "center";
+
+    if (descriptionFont) {
+        descriptionFont.value =
+            configuracion.descriptionFont ||
+            configuracion.titleFont ||
+            "'Segoe UI',sans-serif";
+    }
+
+    description.style.fontFamily =
+        configuracion.descriptionFont ||
+        configuracion.titleFont ||
+        "'Segoe UI',sans-serif";
+
+    /* Restaurar tamaño del título */
+    actualizarTamanoTitulo(
+        configuracion.titleSize || 48
+    );
+
+    /* Restaurar tamaño del subtítulo */
+    actualizarTamanoSubtitulo(
+        configuracion.subtitleSize || 24
+    );
+
+    /* Restaurar tamaño de la descripción en la tarjeta */
+    const tamanoDescripcion =
+        Number(configuracion.descriptionSize) || 20;
+
+    if (description) {
+        description.style.fontSize = tamanoDescripcion + "px";
+    }
+
+    if (descriptionSize) {
+        descriptionSize.value = tamanoDescripcion;
+    }
+
+    if (descriptionSizeValue) {
+        descriptionSizeValue.textContent = tamanoDescripcion + " px";
+    }
+
+}
+
+/*====================================================
+        TAMAÑO DEL NOMBRE
+=====================================================*/
+
+function actualizarTamanoTitulo(valor){
+
+    title.style.fontSize = valor + "px";
+
+    if(titleSize){
+
+        titleSize.value = valor;
+
+    }
+
+    if(titleSizeValue){
+
+        titleSizeValue.innerHTML = valor + " px";
+
+    }
+
+}
+
+/*====================================================
+        TAMAÑO DEL SUBTÍTULO
+=====================================================*/
+
+function actualizarTamanoSubtitulo(valor){
+
+    subtitle.style.fontSize = valor + "px";
+
+    if(subtitleSize){
+
+        subtitleSize.value = valor;
+
+    }
+
+    if(subtitleSizeValue){
+
+        subtitleSizeValue.innerHTML = valor + " px";
+
+    }
+
+}
+
+/*====================================================
+        TAMAÑO DE LA DESCRIPCIÓN — VISTA PREVIA
+=====================================================*/
+
+function actualizarTamanoDescripcion(valor){
+
+    const tamano = Number(valor) || 20;
+
+    if(profileDescription){
+        profileDescription.style.fontSize = tamano + "px";
+    }
+
+    if(descriptionSize){
+        descriptionSize.value = tamano;
+    }
+
+    if(descriptionSizeValue){
+        descriptionSizeValue.textContent = tamano + " px";
+    }
+
+}
+
+
+/*====================================================
+        GRADIENTE DE LA TARJETA
+====================================================*/
+
+function actualizarGradienteTarjeta(){
+
+    const color1 =
+        configuracion.cardColor1 ||
+        configuracion.card ||
+        "#202020";
+
+    const color2 =
+        configuracion.cardColor2 ||
+        "#303030";
+
+    const color3 =
+        configuracion.cardColor3 ||
+        "#101010";
+
+
+    /*====================================================
+            GUARDAR VARIABLES CSS
+    ====================================================*/
+
+    document.documentElement.style.setProperty(
+        "--card-color-1",
+        color1
+    );
+
+    document.documentElement.style.setProperty(
+        "--card-color-2",
+        color2
+    );
+
+    document.documentElement.style.setProperty(
+        "--card-color-3",
+        color3
+    );
+
+
+    /*====================================================
+            GRADIENTE COMPLETO
+            SOLO SE UTILIZA SIN IMAGEN
+    ====================================================*/
+
+    const gradiente =
+        `linear-gradient(
+            135deg,
+            ${color1} 0%,
+            ${color2} 50%,
+            ${color3} 100%
+        )`;
+
+    document.documentElement.style.setProperty(
+        "--card-gradient",
+        gradiente
+    );
+
+
+    /* Compatibilidad con el sistema anterior */
+
+    document.documentElement.style.setProperty(
+        "--card",
+        color1
+    );
+
+
+    /*====================================================
+            APLICAR FONDO
+    ====================================================*/
+
+    aplicarFondoTarjeta();
+}
+
+
+/*====================================================
+        APLICAR FONDO DE LA TARJETA
+====================================================*/
+
+function aplicarFondoTarjeta(){
+
+    const card =
+        document.querySelector(".card");
+
+    if(!card){
+        return;
+    }
+
+
+    /*====================================================
+            COLORES DEL EDITOR
+    ====================================================*/
+
+    const color1 =
+        configuracion.cardColor1 ||
+        configuracion.card ||
+        "#202020";
+
+    const color2 =
+        configuracion.cardColor2 ||
+        "#303030";
+
+    const color3 =
+        configuracion.cardColor3 ||
+        "#101010";
+
+
+    /*====================================================
+            GRADIENTE COMPLETO
+            ESTE ES EL FONDO NORMAL
+    ====================================================*/
+
+    const gradienteCompleto =
+        `linear-gradient(
+            135deg,
+            ${color1} 0%,
+            ${color2} 50%,
+            ${color3} 100%
+        )`;
+
+
+    /*====================================================
+            SIN IMAGEN
+            → USAR LOS 3 COLORES
+    ====================================================*/
+
+    if(!configuracion.cardImage){
+
+        card.style.backgroundImage =
+            gradienteCompleto;
+
+        card.style.backgroundSize =
+            "cover";
+
+        card.style.backgroundPosition =
+            "center";
+
+        card.style.backgroundRepeat =
+            "no-repeat";
+
+
+    /*========================================
+        ACTUALIZAR COLOR DE ICONOS
+    ========================================*/
+
+            actualizarColorIconosCardStats();
+        return;
+    }
+
+
+    /*====================================================
+            CON IMAGEN
+            → SOLAMENTE COLOR 1
+    ====================================================*/
+
+    const degradadoColor1 =
+        `linear-gradient(
+            to top,
+            ${color1} 0%,
+            ${color1} 20%,
+            rgba(0,0,0,0) 65%,
+            rgba(0,0,0,0) 100%
+        )`;
+
+
+    /*====================================================
+            IMAGEN
+    ====================================================*/
+
+    const imagen =
+        configuracion.cardImage;
+
+
+    /*====================================================
+            IMAGEN + DEGRADADO COLOR 1
+    ====================================================*/
+
+    card.style.backgroundImage = `
+        ${degradadoColor1},
+        url("${imagen}")
+    `;
+
+
+    card.style.backgroundSize =
+        "cover, cover";
+
+    card.style.backgroundPosition =
+        "center, center";
+
+    card.style.backgroundRepeat =
+        "no-repeat, no-repeat";
+
+/*========================================
+    ACTUALIZAR COLOR DE ICONOS
+========================================*/
+
+actualizarColorIconosCardStats();
+}
+
+/*====================================================
+                PASO 4
+            RESTAURAR COLORES
+====================================================*/
+
+
+function restaurarColores(){
+
+   /* Fondo */
+
+if(configuracion.background){
+
+    document.documentElement.style.setProperty(
+
+        "--background",
+
+        configuracion.background
+
+    );
+
+    fondo.dataset.colorFinal =
+        configuracion.background;
+
+    fondo.value =
+        rgbObjetoAHex(
+            obtenerRGBDesdeColor(
+                configuracion.background
+            )
+        );
+
+    actualizarColorFooter();
+
+}
+
+
+/*====================================================*
+    RESTAURAR 3 COLORES DE TARJETA
+====================================================*/
+
+const color1 =
+    configuracion.cardColor1 ||
+    configuracion.card ||
+    "#202020";
+
+const color2 =
+    configuracion.cardColor2 ||
+    "#303030";
+
+const color3 =
+    configuracion.cardColor3 ||
+    "#101010";
+
+
+const cardColor1 =
+    document.getElementById("cardColor1");
+
+const cardColor2 =
+    document.getElementById("cardColor2");
+
+const cardColor3 =
+    document.getElementById("cardColor3");
+
+
+/*-----------------------------------------
+    RESTAURAR COLOR 1
+-----------------------------------------*/
+
+if(cardColor1){
+
+    cardColor1.value =
+        rgbObjetoAHex(
+            obtenerRGBDesdeColor(color1)
+        );
+
+}
+
+
+/*-----------------------------------------
+    RESTAURAR COLOR 2
+-----------------------------------------*/
+
+if(cardColor2){
+
+    cardColor2.value =
+        rgbObjetoAHex(
+            obtenerRGBDesdeColor(color2)
+        );
+
+}
+
+
+/*-----------------------------------------
+    RESTAURAR COLOR 3
+-----------------------------------------*/
+
+if(cardColor3){
+
+    cardColor3.value =
+        rgbObjetoAHex(
+            obtenerRGBDesdeColor(color3)
+        );
+
+}
+
+
+/*-----------------------------------------
+    GUARDAR EN CONFIGURACIÓN TEMPORAL
+-----------------------------------------*/
+
+configuracion.cardColor1 =
+    color1;
+
+configuracion.cardColor2 =
+    color2;
+
+configuracion.cardColor3 =
+    color3;
+
+
+/*-----------------------------------------
+    APLICAR DEGRADADO
+-----------------------------------------*/
+
+actualizarGradienteTarjeta();
+
+
+/*-----------------------------------------
+    RESTAURAR MARCA DE AGUA SVG
+-----------------------------------------*/
+
+aplicarMarcaAguaTarjeta();
+
+    /* Botón */
+
+if(configuracion.button){
+
+    document.documentElement.style.setProperty(
+
+        "--button",
+
+        configuracion.button
+
+    );
+
+    botones.dataset.colorFinal =
+        configuracion.button;
+
+    botones.value =
+        rgbObjetoAHex(
+            obtenerRGBDesdeColor(
+                configuracion.button
+            )
+        );
+
+}
+
+   /* Borde */
+
+if(configuracion.border){
+
+    document.documentElement.style.setProperty(
+
+        "--border",
+
+        configuracion.border
+
+    );
+
+    borde.dataset.colorFinal =
+        configuracion.border;
+
+    borde.value =
+        rgbObjetoAHex(
+            obtenerRGBDesdeColor(
+                configuracion.border
+            )
+        );
+
+}
+
+ /* Sombra */
+
+if(configuracion.shadow){
+
+    document.documentElement.style.setProperty(
+
+        "--shadow",
+
+        configuracion.shadow
+
+    );
+
+    sombra.dataset.colorFinal =
+        configuracion.shadow;
+
+    sombra.value =
+        rgbObjetoAHex(
+            obtenerRGBDesdeColor(
+                configuracion.shadow
+            )
+        );
+
+}
+
+    /*====================================================
+        RESTAURAR COLOR DE LOS ICONOS DE LOS BOTONES
+    ====================================================*/
+
+    const colorIconosGuardado =
+        configuracion.iconColor ||
+        "#ffffff";
+
+    document.documentElement.style.setProperty(
+        "--link-icon-color",
+        colorIconosGuardado
+    );
+
+    const inputColorIconos =
+        document.getElementById("iconColor");
+
+    if(inputColorIconos){
+
+        inputColorIconos.dataset.colorFinal =
+            colorIconosGuardado;
+
+        inputColorIconos.value =
+            rgbObjetoAHex(
+                obtenerRGBDesdeColor(
+                    colorIconosGuardado
+                )
+            );
+
+    }
+
+
+    /* Color del título */
+
+if(configuracion.text){
+
+    document.documentElement.style.setProperty(
+
+        "--text",
+
+        configuracion.text
+
+    );
+
+    titleColor.dataset.colorFinal =
+        configuracion.text;
+
+    titleColor.value =
+        rgbObjetoAHex(
+            obtenerRGBDesdeColor(
+                configuracion.text
+            )
+        );
+
+}
+
+    /* Color del subtítulo */
+
+if(configuracion.textSecondary){
+
+    document.documentElement.style.setProperty(
+
+        "--text-secondary",
+
+        configuracion.textSecondary
+
+    );
+
+    subtitleColor.dataset.colorFinal =
+        configuracion.textSecondary;
+
+    subtitleColor.value =
+        rgbObjetoAHex(
+            obtenerRGBDesdeColor(
+                configuracion.textSecondary
+            )
+        );
+
+}
+    /* Gradiente del logo */
+
+if (configuracion.logoGradient && Array.isArray(configuracion.logoGradient)) {
+
+    const posiciones = [
+        "0%","3%","7%","17%",
+        "20%","25%","27%","30%",
+        "33%","45%","49%","68%",
+        "72%","79%","82%","87%",
+        "90%","100%"
+    ];
+
+    const gradient =
+        "linear-gradient(to right in oklch," +
+        configuracion.logoGradient
+            .map((color, i) => `${color} ${posiciones[i]}`)
+            .join(",") +
+        ")";
+
+    document.documentElement.style.setProperty(
+        "--logo-gradient",
+        gradient
+    );
+
+}
+
+}
+
+
+/*====================================================
+        EDITOR UNIVERSAL DE COLOR
+====================================================*/
+
+const colorPickerModal =
+    document.getElementById("colorPickerModal");
+const pickerColor =
+    document.getElementById("pickerColor");
+
+
+/*====================================================
+        TAMAÑO DEL SELECTOR UNIVERSAL
+====================================================*/
+
+if(pickerColor){
+
+    pickerColor.style.width =
+        "100%";
+
+    pickerColor.style.height =
+        "80px";
+
+    pickerColor.style.minHeight =
+        "80px";
+
+    pickerColor.style.display =
+        "block";
+
+    pickerColor.style.padding =
+        "0";
+
+    pickerColor.style.margin =
+        "0";
+
+    pickerColor.style.cursor =
+        "pointer";
+
+    pickerColor.style.border =
+        "2px solid rgba(255,255,255,.25)";
+
+    pickerColor.style.borderRadius =
+        "14px";
+
+    pickerColor.style.boxSizing =
+        "border-box";
+
+}
+
+
+/*====================================================
+        CREAR RANGE HUE
+====================================================*/
+
+const hueColor =
+    document.createElement("input");
+
+hueColor.type =
+    "range";
+
+hueColor.id =
+    "hueColor";
+
+hueColor.min =
+    "0";
+
+hueColor.max =
+    "360";
+
+hueColor.step =
+    "1";
+
+hueColor.value =
+    "0";
+
+
+/*====================================================
+        DISEÑO RANGE
+====================================================*/
+
+hueColor.style.width =
+    "100%";
+
+hueColor.style.height =
+    "18px";
+
+hueColor.style.marginTop =
+    "12px";
+
+hueColor.style.marginBottom =
+    "18px";
+
+hueColor.style.cursor =
+    "pointer";
+
+hueColor.style.appearance =
+    "none";
+
+hueColor.style.webkitAppearance =
+    "none";
+
+hueColor.style.background =
+    "linear-gradient(to right," +
+    "#ff0000 0%," +
+    "#ffff00 17%," +
+    "#00ff00 33%," +
+    "#00ffff 50%," +
+    "#0000ff 67%," +
+    "#ff00ff 83%," +
+    "#ff0000 100%)";
+
+hueColor.style.border =
+    "none";
+
+hueColor.style.borderRadius =
+    "10px";
+
+hueColor.style.outline =
+    "none";
+
+
+/*====================================================
+        COLOCAR DEBAJO DEL SELECTOR
+====================================================*/
+
+const colorWorkspace =
+    document.querySelector(
+        "#colorPickerModal .universal-color-workspace"
+    );
+
+if(colorWorkspace){
+
+    colorWorkspace.insertAdjacentElement(
+        "afterend",
+        hueColor
+    );
+
+}
+
+const hexColor =
+    document.getElementById("hexColor");
+
+const rgbColor =
+    document.getElementById("rgbColor");
+
+const alphaColor =
+    document.getElementById("alphaColor");
+
+const alphaValue =
+    document.getElementById("alphaValue");
+
+const previewColor = document.getElementById("previewColor");
+
+
+    const saveUniversalColor =
+    document.getElementById("saveUniversalColor");
+
+const cancelUniversalColor =
+    document.getElementById("cancelUniversalColor");
+
+    if(cancelUniversalColor){
+
+    cancelUniversalColor.onclick = (e)=>{
+
+        e.preventDefault();
+
+        cerrarEditorUniversal();
+
+    };
+
+}
+
+    /*====================================================
+        BOTÓN RESTABLECER
+====================================================*/
+
+const resetUniversalColor =
+    document.createElement("button");
+
+resetUniversalColor.type =
+    "button";
+
+resetUniversalColor.id =
+    "resetUniversalColor";
+
+resetUniversalColor.innerHTML =
+    "↺";
+
+
+resetUniversalColor.onclick = ()=>{
+
+    pickerColor.value =
+        editorColorActivo.colorOriginal;
+
+
+    alphaColor.value =
+        editorColorActivo.alphaOriginal;
+
+
+    actualizarVistaPrevia();
+
+};
+
+
+const contenedorBotonesColor =
+    saveUniversalColor.parentElement;
+
+if(contenedorBotonesColor){
+
+    contenedorBotonesColor.insertBefore(
+
+        resetUniversalColor,
+
+        saveUniversalColor
+
+    );
+
+}
+
+/*====================================================
+        HISTORIAL DE COLORES
+====================================================*/
+
+const HISTORIAL_COLORES =
+    "editorUniversalHistorial";
+
+
+function obtenerHistorialColores(){
+
+    try{
+
+        const historial =
+            JSON.parse(
+                localStorage.getItem(
+                    HISTORIAL_COLORES
+                )
+            ) || [];
+
+        const recientes =
+            Array.isArray(historial)
+                ? historial.slice(0, 6)
+                : [];
+
+        // Migrar automáticamente historiales antiguos de 10 colores a 6.
+        if(recientes.length !== historial.length){
+            localStorage.setItem(
+                HISTORIAL_COLORES,
+                JSON.stringify(recientes)
+            );
+        }
+
+        return recientes;
+
+    }catch(error){
+
+        return [];
+
+    }
+
+}
+
+
+function guardarColorEnHistorial(color){
+
+    let historial =
+        obtenerHistorialColores();
+
+
+    historial =
+        historial.filter(
+            item => item !== color
+        );
+
+
+    historial.unshift(color);
+
+
+    historial =
+        historial.slice(0,6);
+
+
+    localStorage.setItem(
+
+        HISTORIAL_COLORES,
+
+        JSON.stringify(historial)
+
+    );
+
+
+    mostrarHistorialColores();
+
+}
+
+
+function mostrarHistorialColores(){
+
+    const contenedor =
+        document.getElementById(
+            "universalColorHistory"
+        );
+
+
+    if(!contenedor){
+
+        return;
+
+    }
+
+
+    contenedor.innerHTML = "";
+
+
+    const historial =
+        obtenerHistorialColores();
+
+
+    historial.forEach(color => {
+
+        const boton =
+            document.createElement("button");
+
+
+        boton.type =
+            "button";
+
+
+        boton.title =
+            color;
+
+
+        boton.style.width =
+            "32px";
+
+
+        boton.style.height =
+            "32px";
+
+
+        boton.style.borderRadius =
+            "50%";
+
+
+        boton.style.border =
+            "2px solid rgba(255,255,255,.4)";
+
+
+        boton.style.background =
+            color;
+
+
+        boton.style.cursor =
+            "pointer";
+
+
+        boton.onclick = ()=>{
+
+            const rgb =
+                obtenerRGBDesdeColor(
+                    color
+                );
+
+
+            pickerColor.value =
+                rgbObjetoAHex(rgb);
+
+
+/*=========================================
+        CONFIGURAR HUE
+=========================================*/
+
+if(hueColor){
+
+    const hsl =
+        rgbToHsl(
+
+            rgb.r,
+
+            rgb.g,
+
+            rgb.b
+
+        );
+
+
+    hueColor.value =
+        Math.round(
+            hsl.h
+        );
+
+}
+
+
+            alphaColor.value =
+                Math.round(
+                    obtenerAlphaDesdeColor(color)
+                    * 100
+                );
+
+
+            actualizarVistaPrevia();
+
+        };
+
+
+        contenedor.appendChild(
+            boton
+        );
+
+    });
+
+}
+
+/*====================================================
+        CONTENEDOR HISTORIAL
+====================================================*/
+
+
+
+
+mostrarHistorialColores();
+
+const resetRecentUniversalColors =
+    document.getElementById("resetRecentUniversalColors");
+
+if(resetRecentUniversalColors){
+    resetRecentUniversalColors.onclick = (e) => {
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        /*
+            Restaurar recientes ahora limpia el historial antiguo
+            y conserva únicamente el color actualmente seleccionado.
+            El historial normal nunca supera los 6 colores.
+        */
+        const colorActual =
+            typeof obtenerColorFinal === "function"
+                ? obtenerColorFinal()
+                : (pickerColor?.value || "#000000");
+
+        localStorage.setItem(
+            HISTORIAL_COLORES,
+            JSON.stringify([colorActual])
+        );
+
+        mostrarHistorialColores();
+
+        mostrarNotificacionGuardado(
+            "Colores recientes",
+            "Se limpiaron los colores anteriores y se conservó el color actual."
+        );
+
+    };
+}
+
+
+const closeUniversalColor =
+    document.getElementById("closeUniversalColor");
+
+if (closeUniversalColor) {
+
+    closeUniversalColor.onclick = (e)=>{
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        cerrarEditorUniversal();
+
+    };
+
+}
+
+/*====================================================
+        ACTUALIZAR VISTA PREVIA
+====================================================*/
+
+function actualizarVistaPrevia(){
+
+    if(!previewColor || !pickerColor){
+
+        return;
+
+    }
+
+
+    const rgb =
+        hexToRgbObject(
+            pickerColor.value
+        );
+
+
+    const alpha =
+        limitarAlpha(
+            alphaColor.value
+        ) / 100;
+
+
+    /*=========================================
+        COLOR
+    =========================================*/
+
+    previewColor.style.backgroundColor =
+
+        `rgba(
+            ${rgb.r},
+            ${rgb.g},
+            ${rgb.b},
+            ${alpha}
+        )`;
+
+
+    /*=========================================
+        TAMAÑO
+    =========================================*/
+
+    previewColor.style.width =
+        "100%";
+
+    previewColor.style.height =
+        "90px";
+
+    previewColor.style.minHeight =
+        "90px";
+
+
+    /*=========================================
+        DISEÑO
+    =========================================*/
+
+    previewColor.style.display =
+        "block";
+
+    previewColor.style.borderRadius =
+        "14px";
+
+    previewColor.style.border =
+        "2px solid rgba(255,255,255,.25)";
+
+    previewColor.style.boxSizing =
+        "border-box";
+
+
+    /*=========================================
+        ALPHA
+    =========================================*/
+
+    alphaValue.textContent =
+        alphaColor.value + "%";
+
+}
+
+/*====================================================
+        FUNCIONES DEL EDITOR UNIVERSAL
+====================================================*/
+
+function limitarAlpha(valor){
+
+    valor = Number(valor);
+
+    if(isNaN(valor)) return 100;
+
+    return Math.min(100, Math.max(0, valor));
+
+}
+
+/*====================================================
+        OBTENER RGB DESDE COLOR
+====================================================*/
+
+function obtenerRGBDesdeColor(color){
+
+    if(!color){
+
+        return {
+            r: 0,
+            g: 0,
+            b: 0
+        };
+
+    }
+
+
+    color =
+        String(color).trim();
+
+
+
+    /*=========================================
+        HEX #RRGGBB
+    =========================================*/
+
+    if(
+        /^#[0-9A-F]{6}$/i.test(color)
+    ){
+
+        return {
+
+            r: parseInt(
+                color.substring(1,3),
+                16
+            ),
+
+            g: parseInt(
+                color.substring(3,5),
+                16
+            ),
+
+            b: parseInt(
+                color.substring(5,7),
+                16
+            )
+
+        };
+
+    }
+
+
+    /*=========================================
+        HEX #RGB
+    =========================================*/
+
+    if(
+        /^#[0-9A-F]{3}$/i.test(color)
+    ){
+
+        return {
+
+            r: parseInt(
+                color[1] + color[1],
+                16
+            ),
+
+            g: parseInt(
+                color[2] + color[2],
+                16
+            ),
+
+            b: parseInt(
+                color[3] + color[3],
+                16
+            )
+
+        };
+
+    }
+
+
+    /*=========================================
+        RGB / RGBA
+    =========================================*/
+
+    const match =
+        color.match(
+            /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i
+        );
+
+
+    if(match){
+
+        return {
+
+            r: Number(match[1]),
+
+            g: Number(match[2]),
+
+            b: Number(match[3])
+
+        };
+
+    }
+
+
+    /*=========================================
+        COLOR NO RECONOCIDO
+    =========================================*/
+
+    return {
+
+        r: 0,
+
+        g: 0,
+
+        b: 0
+
+    };
+
+}
+
+/*====================================================
+        RGB → HSL
+====================================================*/
+
+function rgbToHsl(r, g, b){
+
+    r /= 255;
+    g /= 255;
+    b /= 255;
+
+    const max =
+        Math.max(r, g, b);
+
+    const min =
+        Math.min(r, g, b);
+
+    let h = 0;
+
+    let s = 0;
+
+    const l =
+        (max + min) / 2;
+
+
+    if(max !== min){
+
+        const d =
+            max - min;
+
+
+        s =
+            l > 0.5
+                ? d / (2 - max - min)
+                : d / (max + min);
+
+
+        switch(max){
+
+            case r:
+
+                h =
+                    (g - b) / d +
+                    (g < b ? 6 : 0);
+
+                break;
+
+
+            case g:
+
+                h =
+                    (b - r) / d + 2;
+
+                break;
+
+
+            case b:
+
+                h =
+                    (r - g) / d + 4;
+
+                break;
+
+        }
+
+
+        h /= 6;
+
+    }
+
+
+    return {
+
+        h: h * 360,
+
+        s: s * 100,
+
+        l: l * 100
+
+    };
+
+}
+
+/*====================================================
+        HSL → RGB
+====================================================*/
+
+function hslToRgb(h, s, l){
+
+    h /= 360;
+
+    s /= 100;
+
+    l /= 100;
+
+
+    let r;
+
+    let g;
+
+    let b;
+
+
+    if(s === 0){
+
+        r = l;
+        g = l;
+        b = l;
+
+    }else{
+
+        const hue2rgb =
+            (p, q, t)=>{
+
+                if(t < 0) t += 1;
+
+                if(t > 1) t -= 1;
+
+                if(t < 1 / 6){
+
+                    return p +
+                        (q - p) *
+                        6 *
+                        t;
+
+                }
+
+                if(t < 1 / 2){
+
+                    return q;
+
+                }
+
+                if(t < 2 / 3){
+
+                    return p +
+                        (q - p) *
+                        (2 / 3 - t) *
+                        6;
+
+                }
+
+                return p;
+
+            };
+
+
+        const q =
+            l < 0.5
+
+                ? l * (1 + s)
+
+                : l + s - l * s;
+
+
+        const p =
+            2 * l - q;
+
+
+        r =
+            hue2rgb(
+                p,
+                q,
+                h + 1 / 3
+            );
+
+
+        g =
+            hue2rgb(
+                p,
+                q,
+                h
+            );
+
+
+        b =
+            hue2rgb(
+                p,
+                q,
+                h - 1 / 3
+            );
+
+    }
+
+
+    return {
+
+        r: Math.round(r * 255),
+
+        g: Math.round(g * 255),
+
+        b: Math.round(b * 255)
+
+    };
+
+}
+
+
+
+/*====================================================
+        CAMBIAR COLOR CON RANGE HUE
+====================================================*/
+
+hueColor.oninput = ()=>{
+
+
+
+    /*-----------------------------------------
+        COLOR ACTUAL
+    -----------------------------------------*/
+
+const rgbActual =
+    hexToRgbObject(
+        pickerColor.value
+    );
+
+    /*-----------------------------------------
+        CONVERTIR RGB → HSL
+    -----------------------------------------*/
+
+    const hslActual =
+        rgbToHsl(
+
+            rgbActual.r,
+
+            rgbActual.g,
+
+            rgbActual.b
+
+        );
+
+
+    /*-----------------------------------------
+        CAMBIAR SOLO EL TONO
+    -----------------------------------------*/
+
+    const nuevoRGB =
+        hslToRgb(
+
+            Number(
+                hueColor.value
+            ),
+
+            hslActual.s,
+
+            hslActual.l
+
+        );
+
+
+    /*-----------------------------------------
+        RGB → HEX
+    -----------------------------------------*/
+
+    const nuevoHEX =
+        rgbObjetoAHex(
+            nuevoRGB
+        );
+
+
+    /*-----------------------------------------
+        ACTUALIZAR SELECTOR
+    -----------------------------------------*/
+
+    pickerColor.value =
+        nuevoHEX;
+
+
+    /*-----------------------------------------
+        ACTUALIZAR HEX
+    -----------------------------------------*/
+
+    hexColor.value =
+        nuevoHEX;
+
+
+    /*-----------------------------------------
+        ACTUALIZAR RGB
+    -----------------------------------------*/
+
+    rgbColor.value =
+        `rgb( ${nuevoRGB.r}, ${nuevoRGB.g}, ${nuevoRGB.b})`;
+
+
+    /*-----------------------------------------
+        ACTUALIZAR VISTA PREVIA
+    -----------------------------------------*/
+
+    actualizarVistaPrevia();
+
+};
+
+function obtenerAlphaDesdeColor(color){
+
+    if(!color) return 1;
+
+    const match =
+        color.match(
+            /rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*([0-9.]+))?\s*\)/i
+        );
+
+    if(!match || match[1] === undefined){
+
+        return 1;
+
+    }
+
+    return Math.min(
+        1,
+        Math.max(
+            0,
+            Number(match[1])
+        )
+    );
+
+}
+
+
+function rgbObjetoAHex(rgb){
+
+    return "#" +
+
+        [rgb.r, rgb.g, rgb.b]
+
+        .map(valor => {
+
+            return Number(valor)
+                .toString(16)
+                .padStart(2,"0");
+
+        })
+
+        .join("")
+        .toUpperCase();
+
+}
+
+
+function obtenerColorFinal(){
+
+    const rgb =
+        obtenerRGBDesdeColor(
+            pickerColor.value
+        );
+
+    const alpha =
+        limitarAlpha(
+            alphaColor.value
+        ) / 100;
+
+
+    if(alpha >= 1){
+
+        return rgbObjetoAHex(rgb);
+
+    }
+
+
+    return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha.toFixed(2)})`;
+
+}
+/*====================================================
+        CONTEXTO DEL EDITOR UNIVERSAL
+====================================================*/
+
+/**
+ * Guarda la información del elemento que
+ * actualmente está siendo editado.
+ */
+const editorColorActivo = {
+
+    picker: null,
+
+    texto: null,
+
+    formato: null,
+
+    propiedad: null,
+
+    variableCSS: null,
+
+    despuesDeAplicar: null,
+
+    colorOriginal: "#000000",
+
+    alphaOriginal: 100,
+
+    
+
+};
+
+
+
+
+
+
+/*====================================================
+        ABRIR EDITOR UNIVERSAL
+====================================================*/
+
+function abrirEditorColor({
+
+    picker,
+
+    texto = null,
+
+    formato = null,
+
+    propiedad = null,
+
+    variableCSS = null,
+
+    despuesDeAplicar = null
+
+}){
+
+    /*----------------------------------
+        Guardar contexto
+    ----------------------------------*/
+
+    editorColorActivo.picker = picker;
+
+    editorColorActivo.texto = texto;
+
+    editorColorActivo.formato = formato;
+
+    editorColorActivo.propiedad = propiedad;
+
+    editorColorActivo.variableCSS = variableCSS;
+
+    editorColorActivo.despuesDeAplicar = despuesDeAplicar;
+
+
+    /*----------------------------------
+        Compatibilidad
+    ----------------------------------*/
+
+    
+
+
+    /*----------------------------------
+        Inicializar modal
+    ----------------------------------*/
+
+
+
+const colorInicial =
+    picker.dataset.colorFinal ||
+    picker.value ||
+    "#000000";
+
+
+/*=========================================
+        OBTENER RGB
+=========================================*/
+
+const rgb =
+    obtenerRGBDesdeColor(
+        colorInicial
+    );
+
+
+/*=========================================
+        OBTENER ALPHA
+=========================================*/
+
+const alphaOriginal =
+    obtenerAlphaDesdeColor(
+        colorInicial
+    );
+
+
+/*=========================================
+        GUARDAR COLOR ORIGINAL
+=========================================*/
+
+editorColorActivo.colorOriginal =
+    rgbObjetoAHex(rgb);
+
+editorColorActivo.alphaOriginal =
+    Math.round(alphaOriginal * 100);
+
+
+/*=========================================
+        CONFIGURAR PICKER
+=========================================*/
+
+pickerColor.value =
+    rgbObjetoAHex(rgb);
+
+
+    /*=========================================
+        CONFIGURAR RANGE HUE
+=========================================*/
+
+if(hueColor){
+
+    const hsl =
+        rgbToHsl(
+
+            rgb.r,
+
+            rgb.g,
+
+            rgb.b
+
+        );
+
+
+    hueColor.value =
+        Math.round(
+            hsl.h
+        );
+
+}
+
+
+/*=========================================
+        CONFIGURAR ALPHA
+=========================================*/
+
+alphaColor.value =
+    editorColorActivo.alphaOriginal;
+
+
+/*=========================================
+        CONFIGURAR HEX
+=========================================*/
+
+hexColor.value =
+    rgbObjetoAHex(rgb);
+
+
+/*=========================================
+        CONFIGURAR RGB
+=========================================*/
+
+rgbColor.value =
+    `rgb( ${rgb.r}, ${rgb.g}, ${rgb.b})`;
+
+
+/*=========================================
+        ACTUALIZAR VISTA
+=========================================*/
+
+actualizarVistaPrevia();
+
+/*=========================================
+    SINCRONIZAR CONTROLES
+=========================================*/
+
+pickerColor.dispatchEvent(
+    new Event("input")
+);
+
+hueColor.dispatchEvent(
+    new Event("input")
+);
+
+
+/*=========================================
+        ABRIR MODAL
+=========================================*/
+
+colorPickerModal.style.display =
+    "flex";
+}
+
+
+/*====================================================
+        VINCULAR BOTÓN DE COLOR
+====================================================*/
+
+function vincularEditorUniversal({
+
+    boton,
+    picker,
+    texto = null,
+    formato = null,
+    propiedad,
+    variableCSS,
+    despuesDeAplicar = null
+
+}){
+
+    if(!boton) return;
+
+    const abrir = (e) => {
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        abrirEditorColor({
+            picker,
+            texto,
+            formato,
+            propiedad,
+            variableCSS,
+            despuesDeAplicar
+        });
+    };
+
+    /*
+        pointerdown evita que los input[type="color"] abran el selector
+        nativo antes de nuestro Editor de Color. El click queda como
+        respaldo para teclado y accesibilidad.
+    */
+    boton.addEventListener("pointerdown", (e) => {
+
+        boton.dataset.colorPointerOpened = "true";
+        abrir(e);
+
+    }, true);
+
+    boton.addEventListener("click", (e) => {
+
+        if(boton.dataset.colorPointerOpened === "true"){
+
+            boton.dataset.colorPointerOpened = "false";
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
+
+        abrir(e);
+
+    }, true);
+
+}
+
+
+/*====================================================
+        INICIALIZADOR UNIVERSAL DE COLORES
+====================================================*/
+
+function crearEditorColorUniversal(
+
+    picker,
+
+    texto,
+
+    formato,
+
+    propiedadConfiguracion,
+
+    variableCSS,
+
+    despuesDeAplicar = null
+
+){
+
+if(texto && formato){
+
+    crearEditorColor(
+
+        picker,
+
+        texto,
+
+        formato,
+
+        (valor)=>{
+
+            configuracion[propiedadConfiguracion] = valor;
+
+            if(variableCSS){
+
+                document.documentElement.style.setProperty(
+                    variableCSS,
+                    valor
+                );
+
+            }
+
+            if(typeof despuesDeAplicar === "function"){
+
+                despuesDeAplicar(valor);
+
+            }
+
+        }
+
+    );
+
+}
+
+    vincularEditorUniversal({
+
+        boton: picker,
+
+        picker,
+
+        texto,
+
+        formato,
+
+        propiedad: propiedadConfiguracion,
+
+        variableCSS,
+
+        despuesDeAplicar
+
+    });
+
+}
+
+function crearEditorGradienteLogo(){
+
+    const contenedor=document.getElementById("logoGradientEditor");
+
+    if(!contenedor) return;
+
+    contenedor.innerHTML="";
+
+    const colores=configuracion.logoGradient || [
+
+        "#f63b35",
+        "#f63b35",
+        "#1265f0",
+        "#477dff",
+        "#2caf4f",
+        "#72bb44",
+        "#ffe523",
+        "#ffcc25",
+        "#ea4335",
+        "#ea4335",
+        "#1265f0",
+        "#477dff",
+        "#34a853",
+        "#2caf4f",
+        "#ffe523",
+        "#ffcc25",
+        "#f63b35",
+        "#f63b35"
+
+    ];
+
+    colores.forEach((color,i)=>{
+
+        const item=document.createElement("label");
+
+        item.className="logoColor";
+
+        item.style.background=color;
+
+        item.innerHTML=`
+
+            <input
+                type="color"
+                value="${color}"
+                data-index="${i}">
+
+        `;
+
+const input = item.querySelector("input");
+
+/*=========================================
+    CAMBIAR COLOR
+=========================================*/
+
+input.addEventListener("input",()=>{
+
+    item.style.background = input.value;
+
+    configuracion.logoGradient[i] = input.value;
+
+    actualizarGradienteLogo();
+
+});
+
+
+/*=========================================
+    ABRIR EDITOR UNIVERSAL
+=========================================*/
+
+input.addEventListener("click",(e)=>{
+
+    e.preventDefault();
+
+    abrirEditorColor({
+
+        picker: input,
+
+        despuesDeAplicar:(valor)=>{
+
+            // Actualizar el color del cuadrito
+            item.style.background = valor;
+
+            // Actualizar el input
+            input.value = valor;
+
+            // Actualizar la configuración
+            configuracion.logoGradient[i] = valor;
+
+            // Redibujar el anillo
+            actualizarGradienteLogo();
+
+        }
+
+    });
+
+});
+
+contenedor.appendChild(item);
+
+});
+
+
+}
+
+
+/*====================================================
+        CERRAR EDITOR UNIVERSAL
+====================================================*/
+
+function cerrarEditorUniversal(){
+
+    editorColorActivo.picker = null;
+
+    editorColorActivo.texto = null;
+
+    editorColorActivo.formato = null;
+
+    editorColorActivo.propiedad = null;
+
+    editorColorActivo.variableCSS = null;
+
+    editorColorActivo.despuesDeAplicar = null;
+
+    editorColorActivo.colorOriginal =
+        "#000000";
+
+    editorColorActivo.alphaOriginal =
+        100;
+
+
+    colorPickerModal.style.display =
+        "none";
+
+}
+
+
+/*====================================================*
+* BOTÓN APLICAR
+*====================================================*/
+
+saveUniversalColor.onclick = () => {
+
+
+    /*=========================================
+        COMPROBAR EDITOR ACTIVO
+    =========================================*/
+
+    if(!editorColorActivo.picker){
+
+        return;
+
+    }
+
+
+    /*=========================================
+        OBTENER COLOR FINAL
+    =========================================*/
+
+    const colorFinal =
+        obtenerColorFinal();
+
+
+    editorColorActivo.colorFinal =
+        colorFinal;
+
+
+    /*=========================================
+        OBTENER RGB PARA EL PICKER
+    =========================================*/
+
+    const rgb =
+        obtenerRGBDesdeColor(
+            colorFinal
+        );
+
+
+    const hex =
+        rgbObjetoAHex(rgb);
+
+
+    /*=========================================
+        ACTUALIZAR PICKER ORIGINAL
+    =========================================*/
+
+    editorColorActivo.picker.value =
+        hex;
+
+
+    /*=========================================
+        GUARDAR COLOR COMPLETO
+        HEX / RGB / RGBA
+    =========================================*/
+
+    editorColorActivo.picker.dataset.colorFinal =
+        colorFinal;
+
+
+    /*=========================================
+        APLICAR VARIABLE CSS
+    =========================================*/
+
+    if(
+        editorColorActivo.variableCSS
+    ){
+
+        document.documentElement.style.setProperty(
+
+            editorColorActivo.variableCSS,
+
+            colorFinal
+
+        );
+
+    }
+
+
+    /*=========================================
+        ACTUALIZAR CONFIGURACIÓN TEMPORAL
+    =========================================*/
+
+    if(
+        editorColorActivo.propiedad
+    ){
+
+        configuracion[
+            editorColorActivo.propiedad
+        ] = colorFinal;
+
+    }
+
+
+    /*=========================================
+        ACTUALIZAR TEXTO EXTERNO
+    =========================================*/
+
+    if(
+        editorColorActivo.texto
+    ){
+
+        editorColorActivo.texto.value =
+            colorFinal;
+
+    }
+
+
+    /*=========================================
+        EJECUTAR ACCIONES ADICIONALES
+    =========================================*/
+
+    if(
+
+        typeof
+        editorColorActivo.despuesDeAplicar
+        === "function"
+
+    ){
+
+        editorColorActivo.despuesDeAplicar(
+
+            colorFinal
+
+        );
+
+    }
+
+
+    /*=========================================
+        HISTORIAL
+    =========================================*/
+
+    guardarColorEnHistorial(
+        colorFinal
+    );
+
+
+    /*=========================================
+        IMPORTANTE
+        NO GUARDAR EN SERVIDOR AQUÍ
+    =========================================*/
+
+    /*
+        El color solamente se aplica
+        temporalmente.
+
+        El modal principal será quien
+        haga el guardado definitivo.
+    */
+
+
+    /*=========================================
+        CERRAR EDITOR UNIVERSAL
+    =========================================*/
+
+    cerrarEditorUniversal();
+
+};
+
+
+/*====================================================
+        ACTUALIZAR VISTA PREVIA
+====================================================*/
+
+pickerColor.oninput = ()=>{
+
+    /*=========================================
+        OBTENER RGB ACTUAL
+    =========================================*/
+
+    const rgb =
+        obtenerRGBDesdeColor(
+            pickerColor.value
+        );
+
+
+    /*=========================================
+        ACTUALIZAR HEX
+    =========================================*/
+
+    hexColor.value =
+        rgbObjetoAHex(rgb);
+
+
+    /*=========================================
+        ACTUALIZAR RGB
+    =========================================*/
+
+    rgbColor.value =
+        `rgb( ${rgb.r}, ${rgb.g}, ${rgb.b})`;
+
+
+    /*=========================================
+        SINCRONIZAR RANGE HUE
+    =========================================*/
+
+    if(hueColor){
+
+        const hsl =
+            rgbToHsl(
+
+                rgb.r,
+
+                rgb.g,
+
+                rgb.b
+
+            );
+
+
+        hueColor.value =
+            Math.round(
+                hsl.h
+            );
+
+    }
+
+
+    /*=========================================
+        ACTUALIZAR VISTA PREVIA
+    =========================================*/
+
+    actualizarVistaPrevia();
+
+};
+
+
+/*====================================================
+        CAMBIAR COLOR DESDE HEX
+====================================================*/
+
+hexColor.oninput = ()=>{
+
+    const valor =
+        hexColor.value.trim();
+
+
+    if(
+        !/^#[0-9A-F]{6}$/i.test(valor)
+    ){
+
+        hexColor.style.border =
+            "2px solid red";
+
+        return;
+
+    }
+
+
+    hexColor.style.border = "";
+
+
+    pickerColor.value =
+        valor.toUpperCase();
+
+
+    actualizarVistaPrevia();
+
+};
+
+/*====================================================
+        CAMBIAR COLOR DESDE RGB
+====================================================*/
+
+rgbColor.oninput = ()=>{
+
+    const valor =
+        rgbColor.value.trim();
+
+
+    const rgb =
+        obtenerRGBDesdeColor(
+            valor
+        );
+
+
+    if(
+        !/^rgba?\(/i.test(valor) ||
+        rgb.r > 255 ||
+        rgb.g > 255 ||
+        rgb.b > 255
+    ){
+
+        rgbColor.style.border =
+            "2px solid red";
+
+        return;
+
+    }
+
+
+    rgbColor.style.border = "";
+
+
+    const hex =
+        rgbObjetoAHex(rgb);
+
+
+    pickerColor.value =
+        hex;
+
+
+    /*=========================================
+        SI ES RGBA, EXTRAER ALPHA
+    =========================================*/
+
+    const alpha =
+        obtenerAlphaDesdeColor(
+            valor
+        );
+
+
+    if(
+        /^rgba\(/i.test(valor)
+    ){
+
+        alphaColor.value =
+            Math.round(alpha * 100);
+
+    }
+
+
+    actualizarVistaPrevia();
+
+};
+
+
+/*====================================================
+        CAMBIAR TRANSPARENCIA
+====================================================*/
+
+alphaColor.oninput = ()=>{
+
+    alphaColor.value =
+        limitarAlpha(
+            alphaColor.value
+        );
+
+
+    actualizarVistaPrevia();
+
+};
+
+
+function actualizarGradienteLogo(){
+
+    const posiciones=[
+
+        "0%",
+        "3%",
+        "7%",
+        "17%",
+        "20%",
+        "25%",
+        "27%",
+        "30%",
+        "33%",
+        "45%",
+        "49%",
+        "68%",
+        "72%",
+        "79%",
+        "82%",
+        "87%",
+        "90%",
+        "100%"
+
+    ];
+
+    const gradient="linear-gradient(to right in oklch,"+
+
+        configuracion.logoGradient
+        .map((c,i)=>`${c} ${posiciones[i]}`)
+        .join(",")
+
+        +")";
+
+    document.documentElement.style.setProperty(
+
+        "--logo-gradient",
+
+        gradient
+
+    );
+
+}
+
+
+
+
+/*====================================================
+                PASO 5
+            RESTAURAR FUENTE
+====================================================*/
+function restaurarFuente(){
+
+    const fuente =
+        configuracion.font ||
+        "'Segoe UI',sans-serif";
+
+    document.querySelectorAll(".link-card").forEach(card=>{
+
+        card.style.fontFamily = fuente;
+
+    });
+
+    if (fuentes) {
+
+        const existe = [...fuentes.options].some(
+            op => op.value === fuente
+        );
+
+        if (existe) {
+
+            fuentes.value = fuente;
+
+        }
+
+    }
+
+}
+
+/*====================================================
+                PASO 6
+        RESTAURAR BORDER RADIUS
+====================================================*/
+
+function restaurarRadius() {
+
+    const valor = Number(
+        configuracion.radius ?? 50
+    );
+
+    if (typeof radius !== "undefined" && radius) {
+        radius.value = valor;
+    }
+
+    document.querySelectorAll(
+        "#linksContainer .link-main"
+    ).forEach(main => {
+        main.style.setProperty(
+            "border-radius",
+            valor + "px",
+            "important"
+        );
+    });
+
+    document.documentElement.style.setProperty(
+        "--button-radius",
+        valor + "px"
+    );
+}
+
+
+
+
+/*====================================================
+                PASO 7
+    RESTAURAR VELOCIDAD DE ANIMACIONES
+====================================================*/
+
+function restaurarVelocidadAnimaciones() {
+
+    const velocidad =
+        configuracion.animationSpeed || 0.35;
+
+    // Restaurar Slider
+    if (animationSpeed) {
+
+        animationSpeed.value = velocidad;
+
+    }
+
+    // Restaurar texto
+    if (animationValue) {
+
+        animationValue.innerHTML =
+            velocidad + " s";
+
+    }
+
+    // Restaurar Variable CSS
+    document.documentElement.style.setProperty(
+
+        "--animation-speed",
+
+        velocidad + "s"
+
+    );
+
+}
+
+
+/*====================================================
+GUARDAR EDITOR DE COLORES GENERALES
+====================================================*/
+
+
+document.getElementById(
+    "saveGeneralColors"
+).onclick = async () => {
+
+    try{
+
+        /*====================================================
+            GUARDAR GRADIENTE
+        ====================================================*/
+
+        configuracion.cardColor1 =
+            document.getElementById(
+                "cardColor1"
+            ).value;
+
+
+        configuracion.cardColor2 =
+            document.getElementById(
+                "cardColor2"
+            ).value;
+
+
+        configuracion.cardColor3 =
+            document.getElementById(
+                "cardColor3"
+            ).value;
+
+
+        configuracion.card =
+            configuracion.cardColor1;
+
+
+        /*====================================================
+            GUARDAR ESQUINAS DE LOS BOTONES
+        ====================================================*/
+
+        if(typeof radius !== "undefined" && radius){
+
+            configuracion.radius =
+                Number(radius.value);
+
+            document.documentElement.style.setProperty(
+                "--button-radius",
+                configuracion.radius + "px"
+            );
+
+            document
+                .querySelectorAll("#linksContainer .link-main")
+                .forEach(main => {
+                    main.style.setProperty(
+                        "border-radius",
+                        configuracion.radius + "px",
+                        "important"
+                    );
+                });
+
+        }
+
+
+        /*====================================================
+            SUBIR IMAGEN PENDIENTE
+        ====================================================*/
+
+        if(imagenCardPendiente){
+
+            const datos =
+                new FormData();
+
+
+            datos.append(
+                "cardImage",
+                imagenCardPendiente
+            );
+
+
+            const respuesta =
+                await fetch(
+                    "/uploadCardImage",
+                    {
+                        method:"POST",
+                        body:datos
+                    }
+                );
+
+
+            if(!respuesta.ok){
+
+                throw new Error(
+                    "Error HTTP al subir imagen."
+                );
+
+            }
+
+
+            const resultado =
+                await respuesta.json();
+
+
+            if(!resultado.ok){
+
+                throw new Error(
+                    resultado.error ||
+                    "No se pudo guardar la imagen."
+                );
+
+            }
+
+
+            configuracion.cardImage =
+                resultado.cardImage;
+
+
+            imagenCardPendiente =
+                null;
+
+
+            if(backgroundImage){
+
+                backgroundImage.value = "";
+
+            }
+
+        }
+
+
+        /*====================================================
+            APLICAR TODO
+        ====================================================*/
+
+        actualizarGradienteTarjeta();
+
+        aplicarMarcaAguaTarjeta();
+
+
+        /*====================================================
+            GUARDAR CONFIGURACIÓN
+        ====================================================*/
+
+        await guardarConfiguracionServidor();
+
+
+        /*====================================================
+            ESTADO DEL MODAL
+        ====================================================*/
+
+        guardarEstadoModal(
+            colorModal
+        );
+
+
+        mostrarNotificacionGuardado();
+
+
+        colorModal.style.display =
+            "none";
+
+
+        modalActivo = null;
+
+        estadoInicialModal = null;
+
+
+    }catch(error){
+
+        console.error(
+            "Error al guardar los colores:",
+            error
+        );
+
+        alert(
+            error.message
+        );
+
+    }
+
+};
+
+
+/*====================================================
+        QUITAR MARCA DE AGUA
+====================================================*/
+
+async function eliminarMarcaAguaTarjeta(){
+
+    try{
+        const respuesta=await fetch("/removeCardWatermark", {
+            method:"POST"
+        });
+
+        const resultado=await respuesta.json();
+
+        if(!resultado.ok){
+            throw new Error(
+                resultado.error || "No se pudo eliminar el logo."
+            );
+        }
+
+        configuracion.cardWatermark="";
+        await guardarConfiguracionServidor();
+        aplicarMarcaAguaTarjeta();
+
+        const preview=document.getElementById("cardWatermarkLogoPreview");
+        const box=preview?.closest(".file-preview-box");
+
+        if(preview){
+            preview.src="";
+            preview.style.display="none";
+        }
+
+        box?.classList.remove("has-image");
+
+    }catch(error){
+        console.error("Error eliminando logo:",error);
+        mostrarNotificacionGuardado(
+            "No se pudo eliminar el logo",
+            error.message
+        );
+    }
+}
+
+/*====================================================
+                PASO 8
+            RESTAURAR GLASS
+====================================================*/
+
+function restaurarGlass() {
+
+    const card = document.querySelector(".card");
+
+    if (!card) return;
+
+    // Limpiar estado anterior
+    card.classList.remove("glass");
+
+    // Restaurar configuración
+    if (configuracion.glass === true) {
+
+        card.classList.add("glass");
+
+    }
+
+}
+
+/*====================================================
+                PASO 9
+        RESTAURAR NEUMORPHISM
+====================================================*/
+
+function restaurarNeumorphism() {
+
+    const card = document.querySelector(".card");
+
+    if (!card) return;
+
+    // Limpiar estado anterior
+    card.classList.remove("neumorphism");
+
+    // Restaurar configuración
+    if (configuracion.neumorphism === true) {
+
+        card.classList.add("neumorphism");
+
+    }
+
+}
+
+
+
+
+
+
+
+const logo = document.getElementById("logo");
+
+
+/*====================================================
+        VISTA PREVIA DE ARCHIVOS
+====================================================*/
+
+function ajustarCajaMiniatura(preview){
+
+    const box = preview?.closest(".file-preview-box");
+
+    if(!preview || !box){
+        return;
+    }
+
+    /* La caja de carga y la vista previa mantienen siempre
+       exactamente el mismo tamaño. */
+    box.style.setProperty("--preview-w", "100px");
+    box.style.setProperty("--preview-h", "100px");
+    box.style.width = "100px";
+    box.style.height = "100px";
+}
+
+function activarVistaPreviaArchivo(
+    inputId,
+    previewId
+){
+
+    const input =
+        document.getElementById(inputId);
+
+    const preview =
+        document.getElementById(previewId);
+
+    if(!input || !preview){
+
+        return;
+
+    }
+
+    input.addEventListener(
+        "change",
+        (e)=>{
+
+            const archivo =
+                e.target.files[0];
+
+            if(!archivo){
+
+                preview.src = "";
+
+                preview.parentElement
+                    .classList.remove("has-image");
+
+                return;
+
+            }
+
+            if(!archivo.type.startsWith("image/")){
+
+                return;
+
+            }
+
+            const lector =
+                new FileReader();
+
+            lector.onload =
+                (evento)=>{
+
+                    preview.src =
+                        evento.target.result;
+
+                    preview.parentElement
+                        .classList.add(
+                            "has-image"
+                        );
+
+                    ajustarCajaMiniatura(preview);
+
+                };
+
+            lector.readAsDataURL(
+                archivo
+            );
+
+        }
+    );
+
+}
+
+
+/*====================================================
+        ACTIVAR VISTAS PREVIAS
+====================================================*/
+
+activarVistaPreviaArchivo(
+    "logoFile",
+    "logoFilePreview"
+);
+
+
+activarVistaPreviaArchivo(
+    "backgroundImage",
+    "backgroundImagePreview"
+);
+
+
+activarVistaPreviaArchivo(
+    "cardWatermarkLogo",
+    "cardWatermarkLogoPreview"
+);
+
+activarBotonesEliminarMiniaturas();
+
+/*====================================================
+    RESTAURAR VISTAS PREVIAS CON LAS IMÁGENES ACTUALES
+====================================================*/
+
+function restaurarVistasPreviasActuales(){
+
+    const logoPreview =
+        document.getElementById("logoFilePreview");
+
+    if(logoPreview){
+        const logoActual =
+            configuracion.logo || "";
+        logoPreview.src = logoActual;
+        logoPreview.style.display =
+            logoActual ? "block" : "none";
+        logoPreview.parentElement?.classList.toggle(
+            "has-image",
+            Boolean(logoActual)
+        );
+        if(logoActual) ajustarCajaMiniatura(logoPreview);
+    }
+
+    const cardPreview =
+        document.getElementById("backgroundImagePreview");
+
+    if(cardPreview){
+        const imagenActual =
+            configuracion.cardImage || "";
+
+        const aplicarImagenCard = (url) => {
+            cardPreview.src = url || "";
+            cardPreview.style.display =
+                url ? "block" : "none";
+            cardPreview.parentElement?.classList.toggle(
+                "has-image",
+                Boolean(url)
+            );
+            if(url) ajustarCajaMiniatura(cardPreview);
+        };
+
+        if(!imagenActual){
+            aplicarImagenCard("");
+        }else{
+            /* Comprobamos la ruta antes de asignarla al IMG para
+               evitar un GET 404 al abrir otros modales. */
+            fetch(imagenActual, {
+                method:"HEAD",
+                cache:"no-store",
+                credentials:"same-origin"
+            })
+            .then(respuesta => {
+                aplicarImagenCard(respuesta.ok ? imagenActual : "");
+            })
+            .catch(() => aplicarImagenCard(""));
+        }
+    }
+
+    const watermarkPreview =
+        document.getElementById("cardWatermarkLogoPreview");
+
+    if(watermarkPreview){
+        const watermarkActual =
+            configuracion.cardWatermark || "";
+        watermarkPreview.src = watermarkActual;
+        watermarkPreview.style.display =
+            watermarkActual ? "block" : "none";
+        watermarkPreview.parentElement?.classList.toggle(
+            "has-image",
+            Boolean(watermarkActual)
+        );
+        if(watermarkActual) ajustarCajaMiniatura(watermarkPreview);
+    }
+
+    activarBotonesEliminarMiniaturas();
+}
+
+
+
+/*====================================================
+        AMPLIAR VISTA PREVIA AL HACER CLICK
+====================================================*/
+
+/*
+    Delegación de eventos: también funciona con vistas previas
+    creadas dinámicamente después de abrir otros modales.
+*/
+document.addEventListener("click", (evento) => {
+
+    /* La papelera está fuera de la acción de ampliar la miniatura. */
+    if(evento.target.closest(".preview-remove-button")){
+        return;
+    }
+
+    const preview = evento.target.closest(".file-preview-box");
+
+    if(!preview || !preview.classList.contains("has-image")){
+        return;
+    }
+
+    const imagen = preview.querySelector("img");
+
+    if(imagen && (imagen.currentSrc || imagen.src)){
+        evento.preventDefault();
+        evento.stopPropagation();
+        abrirMiniaturaAmpliada(imagen);
+    }
+
+}, true);
+
+
+/*====================================================
+        MOSTRAR NOMBRE DE LA FUENTE
+====================================================*/
+
+const fontFile =
+    document.getElementById("fontFile");
+
+const fontFileName =
+    document.getElementById("fontFileName");
+
+
+if(fontFile && fontFileName){
+
+    fontFile.addEventListener(
+        "change",
+        (e)=>{
+
+            const archivo =
+                e.target.files[0];
+
+            if(!archivo){
+
+                fontFileName.textContent =
+                    "Ningún archivo";
+
+                return;
+
+            }
+
+            fontFileName.textContent =
+                archivo.name;
+
+        }
+    );
+
+}
+
+
+
+
+/*====================================================
+    EDITOR DE ESTADÍSTICAS
+====================================================*/
+
+const adminViewsCounter =
+    document.getElementById(
+        "adminViewsCounter"
+    );
+
+const adminLikesCounter =
+    document.getElementById(
+        "adminLikesCounter"
+    );
+
+const adminSharesCounter =
+    document.getElementById(
+        "adminSharesCounter"
+    );
+
+const saveCardStats =
+    document.getElementById(
+        "saveCardStats"
+    );
+
+const resetCardStats =
+    document.getElementById(
+        "resetCardStats"
+    );
+
+
+/*====================================================
+    POSICIONES WEB Y CELULAR
+====================================================*/
+
+const cardStatsWebX =
+    document.getElementById(
+        "cardStatsWebX"
+    );
+
+const cardStatsWebY =
+    document.getElementById(
+        "cardStatsWebY"
+    );
+
+const cardStatsWebLock =
+    document.getElementById(
+        "cardStatsWebLock"
+    );
+
+
+const cardStatsMobileX =
+    document.getElementById(
+        "cardStatsMobileX"
+    );
+
+const cardStatsMobileY =
+    document.getElementById(
+        "cardStatsMobileY"
+    );
+
+const cardStatsMobileLock =
+    document.getElementById(
+        "cardStatsMobileLock"
+    );
+
+
+
+    /*====================================================
+        SISTEMA DE MÚSICA
+====================================================*/
+
+const btnMusicAdmin =
+    document.getElementById(
+        "btnMusicAdmin"
+    );
+
+
+const musicModal =
+    document.getElementById(
+        "musicModal"
+    );
+
+
+const musicFile =
+    document.getElementById(
+        "musicFile"
+    );
+
+
+const musicFileName =
+    document.getElementById(
+        "musicFileName"
+    );
+
+
+const musicEnabled =
+    document.getElementById(
+        "musicEnabled"
+    );
+
+
+const saveMusic =
+    document.getElementById(
+        "saveMusic"
+    );
+
+
+const siteMusic =
+    document.getElementById(
+        "siteMusic"
+    );
+
+
+const musicSpeakers =
+    document.getElementById(
+        "musicSpeakers"
+    );
+
+
+    const musicUserButton =
+    document.getElementById(
+        "musicUserButton"
+    );
+
+
+const musicUserIcon =
+    document.getElementById(
+        "musicUserIcon"
+    );
+
+
+let musicaUsuarioPermitida =
+    false;
+
+
+let musicaUsuarioBloqueada =
+    false;
+
+let administradorActivo =
+    false;
+
+
+
+/*====================================================
+    ABRIR MODAL
+====================================================*/
+
+if (btnMusicAdmin) {
+
+    btnMusicAdmin.onclick =
+        async () => {
+
+            await cargarConfiguracionMusica();
+
+            cerrarTodosLosModales();
+
+            musicModal.style.display =
+                "flex";
+
+        };
+
+}
+
+
+/*====================================================
+    MOSTRAR NOMBRE DEL ARCHIVO
+====================================================*/
+
+if (musicFile) {
+
+    musicFile.addEventListener(
+        "change",
+        () => {
+
+            if (
+                musicFile.files &&
+                musicFile.files.length
+            ) {
+
+                musicFileName.textContent =
+                    musicFile.files[0].name;
+
+            } else {
+
+                musicFileName.textContent =
+                    "Ningún archivo seleccionado";
+
+            }
+
+        }
+    );
+
+}
+
+
+/*====================================================
+    CARGAR CONFIGURACIÓN
+====================================================*/
+
+async function cargarConfiguracionMusica() {
+
+    try {
+
+        const respuesta =
+            await fetch(
+                "/music/config",
+                {
+                    cache:
+                        "no-store"
+                }
+            );
+
+
+        if (!respuesta.ok) {
+            return;
+        }
+
+
+        const datos =
+            await respuesta.json();
+
+
+        musicEnabled.checked =
+            datos.enabled === true;
+
+
+        if (datos.url) {
+
+            siteMusic.src =
+                datos.url;
+
+        }
+
+
+    } catch(error) {
+
+        console.error(
+            "Error cargando música:",
+            error
+        );
+
+    }
+
+}
+
+
+/*====================================================
+    GUARDAR MÚSICA
+====================================================*/
+
+if (saveMusic) {
+
+    saveMusic.onclick =
+        async () => {
+
+            try {
+
+                /*=====================================
+                    SUBIR MP3 SI EXISTE UNO NUEVO
+                =====================================*/
+
+                if (
+                    musicFile.files &&
+                    musicFile.files.length
+                ) {
+
+                    const archivo =
+                        musicFile.files[0];
+
+
+                    if (
+                        !archivo.name
+                            .toLowerCase()
+                            .endsWith(".mp3")
+                    ) {
+
+                        alert(
+                            "Selecciona un archivo MP3."
+                        );
+
+                        return;
+
+                    }
+
+
+                    const formulario =
+                        new FormData();
+
+
+                    formulario.append(
+                        "music",
+                        archivo
+                    );
+
+
+                    const respuesta =
+                        await fetch(
+                            "/uploadMusic",
+                            {
+
+                                method:
+                                    "POST",
+
+                                body:
+                                    formulario
+
+                            }
+                        );
+
+
+                    const datos =
+                        await respuesta.json();
+
+
+                    if (
+                        !respuesta.ok ||
+                        !datos.ok
+                    ) {
+
+                        throw new Error(
+                            datos.error ||
+                            "No se pudo subir la música."
+                        );
+
+                    }
+
+
+                    siteMusic.src =
+                        datos.musicUrl;
+
+                }
+
+
+                /*=====================================
+                    ACTIVAR / DESACTIVAR
+                =====================================*/
+
+                const respuestaEstado =
+                    await fetch(
+                        "/music/toggle",
+                        {
+
+                            method:
+                                "POST",
+
+                            headers: {
+
+                                "Content-Type":
+                                    "application/json"
+
+                            },
+
+                            body:
+                                JSON.stringify({
+
+                                    enabled:
+                                        musicEnabled.checked
+
+                                })
+
+                        }
+                    );
+
+
+                const datosEstado =
+                    await respuestaEstado.json();
+
+
+                if (
+                    !respuestaEstado.ok ||
+                    !datosEstado.ok
+                ) {
+
+                    throw new Error(
+                        datosEstado.error ||
+                        "No se pudo guardar el estado."
+                    );
+
+                }
+
+
+                /*=====================================
+                    CERRAR MODAL
+                =====================================*/
+
+                cerrarModalDefinitivamente(
+                    musicModal
+                );
+
+
+                mostrarNotificacionGuardado(
+                    "Música guardada",
+                    musicEnabled.checked
+                        ? "La música está activada."
+                        : "La música está desactivada."
+                );
+
+
+                /*=====================================
+                    ACTUALIZAR USUARIO
+                =====================================*/
+
+                await iniciarMusicaUsuario();
+
+
+            } catch(error) {
+
+                console.error(
+                    "Error guardando música:",
+                    error
+                );
+
+
+                alert(
+                    error.message
+                );
+
+            }
+
+        };
+
+}
+
+/*====================================================
+    MOSTRAR PARLANTES
+====================================================*/
+
+function mostrarParlantesMusica() {
+
+    if (!musicSpeakers) {
+        return;
+    }
+
+
+    musicSpeakers.classList.add(
+        "music-playing"
+    );
+
+}
+
+
+/*====================================================
+    OCULTAR PARLANTES
+====================================================*/
+
+function ocultarParlantesMusica() {
+
+    if (!musicSpeakers) {
+        return;
+    }
+
+
+    musicSpeakers.classList.remove(
+        "music-playing"
+    );
+
+}
+
+
+/*====================================================
+    CONTROL DE MÚSICA DEL USUARIO
+====================================================*/
+
+function mostrarBotonMusicaUsuario(){
+
+    if(!musicUserButton){
+
+        return;
+
+    }
+
+
+    /*
+        EL ADMINISTRADOR NUNCA DEBE
+        VER EL BOTÓN DEL USUARIO.
+    */
+
+    if(administradorActivo){
+
+        musicUserButton.style.display =
+            "none";
+
+        return;
+
+    }
+
+
+    musicUserButton.classList.add(
+        "music-user-visible"
+    );
+
+    musicUserButton.style.display =
+        "flex";
+
+}
+
+
+function ocultarBotonMusicaUsuario(){
+
+    if(!musicUserButton){
+
+        return;
+
+    }
+
+
+    musicUserButton.classList.remove(
+        "music-user-visible"
+    );
+
+}
+
+
+function actualizarBotonMusicaUsuario(){
+
+
+    if(administradorActivo){
+
+    if(musicUserButton){
+
+        musicUserButton.style.display =
+            "none";
+
+    }
+
+    return;
+
+}
+
+    if(
+        !musicUserButton ||
+        !musicUserIcon
+    ){
+
+        return;
+
+    }
+
+
+    if(
+        siteMusic &&
+        !siteMusic.paused
+    ){
+
+        musicUserIcon.className =
+            "fa-solid fa-volume-high";
+
+
+        musicUserButton.title =
+            "Apagar música";
+
+
+        musicUserButton.setAttribute(
+            "aria-label",
+            "Apagar música"
+        );
+
+
+        musicUserButton.classList.add(
+            "music-user-playing"
+        );
+
+    }else{
+
+        musicUserIcon.className =
+            "fa-solid fa-volume-xmark";
+
+
+        musicUserButton.title =
+            "Escuchar música";
+
+
+        musicUserButton.setAttribute(
+            "aria-label",
+            "Escuchar música"
+        );
+
+
+        musicUserButton.classList.remove(
+            "music-user-playing"
+        );
+
+    }
+
+}
+
+/*====================================================
+    CLICK DEL BOTÓN DE MÚSICA
+====================================================*/
+
+if(musicUserButton){
+
+    musicUserButton.addEventListener(
+        "click",
+        async () => {
+
+            if(!siteMusic){
+
+                return;
+
+            }
+
+
+            /*
+                SI ESTÁ REPRODUCIENDO
+                → APAGAR PARA ESTE USUARIO
+            */
+
+            if(!siteMusic.paused){
+
+                siteMusic.pause();
+
+                actualizarBotonMusicaUsuario();
+
+                ocultarParlantesMusica();
+
+                return;
+
+            }
+
+
+            /*
+                SI ESTÁ PAUSADA
+                → REPRODUCIR
+            */
+
+            try{
+
+                await siteMusic.play();
+
+                actualizarBotonMusicaUsuario();
+
+            }catch(error){
+
+                console.error(
+                    "No se pudo reproducir la música:",
+                    error
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+/*====================================================
+    EVENTOS DEL AUDIO
+====================================================*/
+
+if(siteMusic){
+
+    siteMusic.addEventListener(
+        "play",
+        () => {
+
+            mostrarParlantesMusica();
+
+            actualizarBotonMusicaUsuario();
+
+        }
+    );
+
+
+    siteMusic.addEventListener(
+        "playing",
+        () => {
+
+            mostrarParlantesMusica();
+
+            actualizarBotonMusicaUsuario();
+
+        }
+    );
+
+
+    siteMusic.addEventListener(
+        "pause",
+        () => {
+
+            ocultarParlantesMusica();
+
+            actualizarBotonMusicaUsuario();
+
+        }
+    );
+
+
+    siteMusic.addEventListener(
+        "ended",
+        () => {
+
+            ocultarParlantesMusica();
+
+            actualizarBotonMusicaUsuario();
+
+        }
+    );
+
+}
+
+/*====================================================
+    INICIAR MÚSICA DEL USUARIO
+====================================================*/
+
+async function iniciarMusicaUsuario() {
+
+    try {
+
+        const respuesta =
+            await fetch(
+                "/music/config",
+                {
+                    cache:
+                        "no-store"
+                }
+            );
+
+
+        if (!respuesta.ok) {
+            return;
+        }
+
+
+        const datos =
+            await respuesta.json();
+
+
+
+            /*
+                Si el administrador está conectado,
+                no mostramos el botón del usuario.
+            */
+            if(administradorActivo){
+
+                ocultarBotonMusicaUsuario();
+
+            }
+
+        /*=====================================
+            MÚSICA DESACTIVADA
+        =====================================*/
+
+                if (
+                datos.enabled !== true ||
+                !datos.url
+            ){
+
+                ocultarParlantesMusica();
+
+                ocultarBotonMusicaUsuario();
+
+
+                if(siteMusic){
+
+                    siteMusic.pause();
+
+                    siteMusic.removeAttribute(
+                        "src"
+                    );
+
+                    siteMusic.load();
+
+                }
+
+
+                musicaUsuarioPermitida =
+                    false;
+
+                return;
+
+            }
+
+
+        /*=====================================
+            CARGAR AUDIO
+        =====================================*/
+
+        siteMusic.src =
+            datos.url;
+
+        siteMusic.loop =
+            true;
+
+
+        siteMusic.volume =
+            0.35;
+
+
+        /*
+            Intentamos reproducir.
+            El navegador puede bloquear
+            autoplay hasta que exista
+            interacción del usuario.
+        */
+
+ try{
+
+    /*
+        El administrador dejó la música activa.
+
+        Intentamos reproducir inmediatamente.
+    */
+
+    await siteMusic.play();
+
+
+    musicaUsuarioPermitida =
+        true;
+
+    musicaUsuarioBloqueada =
+        false;
+
+
+if(!administradorActivo){
+
+    mostrarBotonMusicaUsuario();
+
+}
+
+    actualizarBotonMusicaUsuario();
+
+
+}catch(error){
+
+    /*
+        El navegador bloqueó autoplay
+        con sonido.
+
+        NO apagamos la música del servidor.
+
+        Simplemente mostramos el botón
+        para que el usuario pueda activarla.
+    */
+
+    console.log(
+        "Autoplay bloqueado por el navegador."
+    );
+
+
+    musicaUsuarioPermitida =
+        true;
+
+    musicaUsuarioBloqueada =
+        true;
+
+
+if(!administradorActivo){
+
+    mostrarBotonMusicaUsuario();
+
+}
+
+    actualizarBotonMusicaUsuario();
+
+}
+
+
+    } catch(error) {
+
+        console.error(
+            "Error iniciando música:",
+            error
+        );
+
+    }
+
+}
+
+
+
+
+const favicon = document.getElementById("favicon");
+
+const logoSize = document.getElementById("logoSize");
+
+const logoSizeValue = document.getElementById("logoSizeValue");
+
+const title = document.getElementById("title");
+
+const subtitle = document.getElementById("subtitle");
+
+const titleSize = document.getElementById("titleSize");
+
+const subtitleSize = document.getElementById("subtitleSize");
+
+const subtitleSizeValue = document.getElementById("subtitleSizeValue");
+
+const titleSizeValue = document.getElementById("titleSizeValue");
+
+
+
+
+const logoModal = document.getElementById("logoModal");
+
+const titleModal = document.getElementById("titleModal");
+
+
+
+const colorModal = document.getElementById("colorModal");
+
+const btnBackground = document.getElementById("btnBackground");
+
+
+const titleColor = document.getElementById("titleColor");
+
+
+const subtitleColor = document.getElementById("subtitleColor");
+
+const descriptionTextColor = document.getElementById("descriptionTextColor");
+
+const descriptionBackgroundColor = document.getElementById("descriptionBackgroundColor");
+const descriptionFont = document.getElementById("descriptionFont");
+const descriptionSize = document.getElementById("descriptionSize");
+const descriptionSizeValue = document.getElementById("descriptionSizeValue");
+
+const titleColorText = document.getElementById("titleColorText");
+
+const subtitleColorText = document.getElementById("subtitleColorText");
+
+const titleColorFormat = document.getElementById("titleColorFormat");
+
+const subtitleColorFormat = document.getElementById("subtitleColorFormat");
+
+const pageTitle = document.querySelector("title");
+
+const iconColor = document.getElementById("iconColor");
+
+const linkTextColor = document.getElementById("linkTextColor");
+
+
+
+
+
+
+
+
+/*====================================================
+        CONTROLADOR DE DESCRIPCION
+====================================================*/
+
+const profileDescription = document.getElementById("profileDescription");
+
+const contadorDescripcion = document.getElementById("contadorDescripcion");
+
+profileDescription.addEventListener("input",()=>{
+
+    contadorDescripcion.textContent = `${profileDescription.value.length} / 220`;
+
+});
+
+
+
+
+
+/*====================================================
+        TÍTULO
+====================================================*/
+crearEditorColorUniversal(
+
+    titleColor,
+
+    null,
+
+    null,
+
+    "text",
+
+    "--text"
+
+);
+
+/*====================================================
+        SUBTÍTULO
+====================================================*/
+
+crearEditorColorUniversal(
+
+    subtitleColor,
+
+    null,
+
+    null,
+
+    "textSecondary",
+
+    "--text-secondary"
+
+);
+
+/*====================================================
+        COLOR DE LETRA DEL BOTÓN
+====================================================*/
+
+crearEditorColorUniversal(
+
+    linkTextColor,
+
+    null,
+
+    null,
+
+    "linkTextColor",
+
+    null,
+
+    (valor)=>{
+
+        if(!botonSeleccionado) return;
+
+        const span =
+            botonSeleccionado.querySelector(".center span");
+
+        if(span){
+            span.style.color = valor;
+        }
+
+        const small =
+            botonSeleccionado.querySelector(".center small");
+
+        if(small){
+            small.style.color = valor;
+        }
+
+        botonSeleccionado.dataset.textColor = valor;
+
+    }
+
+);
+
+/*====================================================
+        DESCRIPCIÓN
+====================================================*/
+
+vincularEditorUniversal({
+
+    boton: descriptionTextColor,
+
+    picker: descriptionTextColor,
+
+    propiedad: "descriptionTextColor",
+
+    despuesDeAplicar:(valor)=>{
+
+        document.getElementById("description").style.color = valor;
+
+        profileDescription.style.color = valor;
+
+    }
+
+});
+
+
+
+vincularEditorUniversal({
+
+    boton: descriptionBackgroundColor,
+
+    picker: descriptionBackgroundColor,
+
+    propiedad: "descriptionBackgroundColor",
+
+    despuesDeAplicar:(valor)=>{
+
+        document.getElementById("description").style.backgroundColor = valor;
+
+        profileDescription.style.backgroundColor = valor;
+
+    }
+
+});
+
+
+
+
+
+
+
+/*==================================================
+            BOTÓN AGREGAR ENLACE
+==================================================*/
+
+// Crear botón flotante
+
+const addButton=document.createElement("button");
+
+addButton.id="addLink";
+
+addButton.classList.add("admin-only");
+
+addButton.innerHTML='<i class="fa-solid fa-plus"></i>';
+
+document.body.appendChild(addButton);
+
+addButton.style.cssText=`
+
+position:fixed;
+
+bottom:20px;
+
+right:30px;
+
+width:60px;
+
+height:60px;
+
+border:none;
+
+border-radius:50%;
+
+background:#ffffff;
+
+color:#111;
+
+font-size:24px;
+
+cursor:pointer;
+
+box-shadow:0 10px 30px rgba(0,0,0,.30);
+
+z-index:999;
+
+transition:var(--animation-speed);
+
+`;
+
+addButton.onmouseenter=()=>{
+
+addButton.style.transform="scale(1.1) rotate(90deg)";
+
+}
+
+addButton.onmouseleave=()=>{
+
+addButton.style.transform="scale(1)";
+
+}
+
+
+/*==================================================
+        LÍMITE DE BOTONES
+==================================================*/
+
+const LIMITE_BOTONES = 10;
+
+/*   botón flotante  */
+
+
+function abrirDialogoCrearBoton(){
+
+    const totalBotones =
+        document.querySelectorAll(
+            "#linksContainer .link-card"
+        ).length;
+
+    mostrarEstadoLimiteBotones(
+        totalBotones,
+        totalBotones < LIMITE_BOTONES
+    );
+
+}
+
+addButton.onclick = () => {
+
+    abrirDialogoCrearBoton();
+
+};
+
+
+
+
+
+const tituloRadius=document.createElement("label");
+
+tituloRadius.innerHTML=
+
+"<a>Esquinas de los botones</a>";
+
+tituloRadius.style.display="block";
+
+tituloRadius.style.marginTop="20px";
+
+tituloRadius.style.marginBottom="8px";
+
+document.querySelector("#colorModal .modal-content")
+
+.appendChild(tituloRadius);
+
+
+/*==================================================
+        CAMBIAR RADIO BOTONES
+==================================================*/
+
+const radius=document.createElement("input");
+
+radius.type="range";
+
+radius.min=10;
+
+radius.max=60;
+
+radius.value=Number(configuracion.radius ?? 50);
+
+radius.style.width="100%";
+
+radius.style.marginTop="15px";
+
+document.querySelector("#colorModal .modal-content")
+.appendChild(radius);
+
+
+/*==================================================
+           GUARDA NUEVO RADIO
+==================================================*/
+radius.oninput = ()=>{
+
+    const valor =
+        Number(radius.value);
+
+    configuracion.radius =
+        valor;
+
+    document.documentElement.style.setProperty(
+        "--button-radius",
+        valor + "px"
+    );
+
+    document
+        .querySelectorAll("#linksContainer .link-main")
+        .forEach(main => {
+
+            main.style.setProperty(
+                "border-radius",
+                valor + "px",
+                "important"
+            );
+
+        });
+
+} 
+
+
+/*==================================================
+    FUENTE  DE LOS BOTONES 
+==================================================*/
+
+const tituloFuente=document.createElement("label");
+
+tituloFuente.innerHTML = "Fuente de los botones";
+
+document.querySelector("#colorModal .modal-content")
+.appendChild(tituloFuente);
+
+
+const fuenteTitulo = document.getElementById("titleFont");
+
+
+/*==================================================
+            CAMBIAR FUENTE BOTONES 
+==================================================*/
+
+const fuentes=document.createElement("select");
+
+fuentes.innerHTML=`
+
+<option value="'Segoe UI',sans-serif">Segoe UI</option>
+
+<option value="'Poppins',sans-serif">Poppins</option>
+
+<option value="'Montserrat',sans-serif">Montserrat</option>
+
+<option value="'Nunito',sans-serif">Nunito</option>
+
+<option value="Arial,sans-serif">Arial</option>
+
+<option value="Verdana,sans-serif">Verdana</option>
+
+<option value="Tahoma,sans-serif">Tahoma</option>
+
+<option value="Georgia,serif">Georgia</option>
+
+
+`;
+
+document.querySelector("#colorModal .modal-content")
+.appendChild(fuentes);
+
+
+
+
+
+
+
+
+
+
+/*  FUENTES DE LOS BOTONES DE CARD  */
+
+fuentes.onchange = () => {
+
+    document.querySelectorAll(".link-card").forEach(card => {
+
+        card.style.fontFamily = fuentes.value;
+
+        const span = card.querySelector(".center span");
+        if (span) {
+            span.style.fontFamily = fuentes.value;
+        }
+
+        const small = card.querySelector(".center small");
+        if (small) {
+            small.style.fontFamily = fuentes.value;
+        }
+    });
+
+    configuracion.font = fuentes.value;
+
+   
+
+};
+
+
+/*==================================================*
+*COLOCAR BOTÓN GUARDAR AL FINAL DEL MODAL*
+*==================================================*/
+
+const modalColores =
+    document.querySelector(
+        "#colorModal .modal-content"
+    );
+
+const botonGuardarColores =
+    document.getElementById(
+        "saveGeneralColors"
+    );
+
+
+if (
+    modalColores &&
+    botonGuardarColores
+) {
+
+    /*
+        El contenedor actual del botón
+        también se mueve al final.
+    */
+
+    const contenedorGuardar =
+        botonGuardarColores.closest(
+            ".buttons"
+        );
+
+
+    if (contenedorGuardar) {
+
+        modalColores.appendChild(
+            contenedorGuardar
+        );
+
+    } else {
+
+        modalColores.appendChild(
+            botonGuardarColores
+        );
+
+    }
+
+}
+
+
+
+/*==================================================
+    CAMBIAR SOLO EL TÍTULO
+==================================================*/
+
+fuenteTitulo.onchange = () => {
+
+    title.style.fontFamily =
+        fuenteTitulo.value;
+
+    subtitle.style.fontFamily =
+        fuenteTitulo.value;
+
+    configuracion.titleFont =
+        fuenteTitulo.value;
+
+};
+
+if (descriptionFont) {
+    descriptionFont.onchange = () => {
+
+        const fuente = descriptionFont.value;
+
+        document.getElementById("description").style.fontFamily =
+            fuente;
+
+        profileDescription.style.fontFamily =
+            fuente;
+
+        configuracion.descriptionFont =
+            fuente;
+
+    };
+}
+
+
+
+/*==================================================
+    TAMAÑO DEL LOGO
+==================================================*/
+
+logoSize.addEventListener("input", ()=>{
+
+    configuracion.logoSize =
+        Number(logoSize.value);
+
+    actualizarTamanoLogo(
+        configuracion.logoSize
+    );
+
+    document
+        .getElementById("box1")
+        ?.style.setProperty(
+            "--logo-size",
+            configuracion.logoSize + "px"
+        );
+
+});
+
+/*================================================== 
+                VELOCIDAD DE ANIMACIONES 
+==================================================*/ 
+
+
+const animationSpeed =
+document.getElementById("animationSpeed");
+
+const animationValue =
+document.getElementById("animationValue");
+
+animationSpeed.addEventListener("input", ()=>{
+
+    const value = parseFloat(animationSpeed.value);
+
+    animationValue.innerHTML =
+    value + " s";
+
+    document.documentElement.style.setProperty(
+
+        "--animation-speed",
+
+        value + "s"
+
+    );
+
+    configuracion.animationSpeed =
+    value;
+
+   
+
+
+
+
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*=========================================
+    CERRAR TODOS LOS MODALES
+=========================================*/
+
+function cerrarTodosLosModales() {
+
+    document.querySelectorAll(".modal").forEach(modal => {
+
+        modal.style.display = "none";
+
+    });
+
+}
+
+
+/*====================================================
+    BLOQUEAR SCROLL DEL FONDO AL ABRIR MODALES
+====================================================*/
+
+function actualizarBloqueoScrollModales(){
+
+    const hayModalAbierto =
+        Array.from(
+            document.querySelectorAll(".modal")
+        ).some(modal => {
+
+            const estilo =
+                window.getComputedStyle(modal);
+
+            return estilo.display !== "none";
+        });
+
+    document.documentElement.classList.toggle(
+        "modal-scroll-locked",
+        hayModalAbierto
+    );
+
+    document.body.classList.toggle(
+        "modal-scroll-locked",
+        hayModalAbierto
+    );
+}
+
+const observadorModales =
+    new MutationObserver(
+        actualizarBloqueoScrollModales
+    );
+
+document.querySelectorAll(".modal").forEach(modal => {
+
+    observadorModales.observe(
+        modal,
+        {
+            attributes:true,
+            attributeFilter:["style","class"]
+        }
+    );
+
+});
+
+actualizarBloqueoScrollModales();
+
+
+/*====================================================
+        SISTEMA DEFINITIVO DE CAMBIOS EN MODALES
+
+====================================================*/
+
+let modalActivo = null;
+
+let estadoInicialModal = null;
+
+
+/*====================================================
+        OBTENER ESTADO DE LOS CONTROLES
+====================================================*/
+
+function obtenerControlesModal(modal){
+
+    if(!modal){
+
+        return [];
+
+    }
+
+    return Array.from(
+
+        modal.querySelectorAll(
+            "input, textarea, select"
+        )
+
+    ).map(control => {
+
+        return {
+
+            id:
+                control.id || "",
+
+            type:
+                control.type || "",
+
+            value:
+                control.value || "",
+
+            checked:
+                control.checked || false,
+
+            colorFinal:
+                control.dataset.colorFinal || ""
+
+        };
+
+    });
+
+}
+
+
+/*====================================================
+        GUARDAR ESTADO INICIAL
+====================================================*/
+
+function guardarEstadoModal(modal){
+
+    if(!modal){
+
+        return;
+
+    }
+
+
+    modalActivo = modal;
+
+
+    estadoInicialModal = {
+
+        configuracion:
+            JSON.stringify(configuracion),
+
+        controles:
+            JSON.stringify(
+                obtenerControlesModal(modal)
+            ),
+
+        botonHTML:
+            null
+
+    };
+
+
+    /*-----------------------------------------
+        GUARDAR HTML ORIGINAL DEL BOTÓN
+    -----------------------------------------*/
+
+    if(
+
+        modal.id === "linkModal" &&
+
+        botonSeleccionado
+
+    ){
+
+        estadoInicialModal.botonHTML =
+            botonSeleccionado.outerHTML;
+
+    }
+
+}
+
+
+/*====================================================
+        COMPROBAR CAMBIOS
+====================================================*/
+
+function modalTieneCambios(){
+
+    if(
+
+        !modalActivo ||
+
+        !estadoInicialModal
+
+    ){
+
+        return false;
+
+    }
+
+
+    const estadoActual = {
+
+        configuracion:
+            JSON.stringify(configuracion),
+
+        controles:
+            JSON.stringify(
+                obtenerControlesModal(modalActivo)
+            ),
+
+        botonHTML:
+            null
+
+    };
+
+
+    if(
+
+        modalActivo.id === "linkModal" &&
+
+        botonSeleccionado
+
+    ){
+
+        estadoActual.botonHTML =
+            botonSeleccionado.outerHTML;
+
+    }
+
+
+    return (
+
+        JSON.stringify(estadoActual) !==
+
+        JSON.stringify(estadoInicialModal)
+
+    );
+
+}
+
+
+/*====================================================
+        RESTAURAR CAMBIOS
+====================================================*/
+
+function restaurarEstadoModal(){
+
+    if(
+
+        !modalActivo ||
+
+        !estadoInicialModal
+
+    ){
+
+        return;
+
+    }
+
+
+    /*=========================================
+        RESTAURAR CONFIGURACIÓN
+    =========================================*/
+
+    try{
+
+        configuracion =
+            JSON.parse(
+                estadoInicialModal.configuracion
+            );
+
+    }catch(error){
+
+        return;
+
+    }
+
+
+    /*=========================================
+        RESTAURAR CONTROLES
+    =========================================*/
+
+    const controles =
+        JSON.parse(
+            estadoInicialModal.controles
+        );
+
+
+    controles.forEach(estado => {
+
+        const control =
+            document.getElementById(
+                estado.id
+            );
+
+
+        if(!control){
+
+            return;
+
+        }
+
+
+        if(control.type === "checkbox"){
+
+            control.checked =
+                estado.checked;
+
+        }else{
+
+            control.value =
+                estado.value;
+
+        }
+
+
+        if(estado.colorFinal){
+
+            control.dataset.colorFinal =
+                estado.colorFinal;
+
+        }
+
+    });
+
+
+    /*=========================================
+        RESTAURAR BOTÓN
+    =========================================*/
+
+    if(
+
+        modalActivo.id === "linkModal" &&
+
+        estadoInicialModal.botonHTML &&
+
+        botonSeleccionado
+
+    ){
+
+        const nuevoBoton =
+            document.createElement("div");
+
+        nuevoBoton.innerHTML =
+            estadoInicialModal.botonHTML;
+
+        const restaurado =
+            nuevoBoton.firstElementChild;
+
+
+        if(restaurado){
+
+            botonSeleccionado.replaceWith(
+                restaurado
+            );
+
+            botonSeleccionado =
+                restaurado;
+
+        }
+
+    }
+
+
+    /*=========================================
+        RESTAURAR VISTA GENERAL
+    =========================================*/
+
+    restaurarTema();
+
+    restaurarLogo();
+
+    restaurarTitulo();
+
+    restaurarColores();
+
+    restaurarFuente();
+
+    restaurarRadius();
+
+    restaurarVelocidadAnimaciones();
+
+    restaurarGlass();
+
+    restaurarNeumorphism();
+
+
+    /*=========================================
+        RESTAURAR BOTONES
+    =========================================*/
+
+    if(
+
+        typeof activarBotones ===
+        "function"
+
+    ){
+
+        activarBotones();
+
+    }
+
+
+    /*=========================================
+        LIMPIAR EDITOR UNIVERSAL
+    =========================================*/
+
+    cerrarEditorUniversal();
+
+}
+
+
+
+    /*====================================================
+                    ABRIR MODALES
+    ====================================================*/
+
+    /*=========================================
+                EDITAR LOGO
+    =========================================*/
+  document.querySelector(".edit-logo").onclick = () => {
+
+    crearEditorGradienteLogo();
+
+    restaurarVistasPreviasActuales();
+cerrarTodosLosModales();
+
+    logoModal.style.display = "flex";
+
+    
+
+    guardarEstadoModal(logoModal);
+
+};
+
+
+    /*=========================================
+            EDITAR TÍTULO Y SUBTÍTULO
+    =========================================*/
+    document.querySelector(".edit-title").onclick = () => {
+
+
+   
+        
+        /*-----------------------------------------
+            RESTAURAR TEXTO
+        -----------------------------------------*/
+
+        document.getElementById("newTitle").value =
+            title.childNodes[0].textContent.trim();
+
+        document.getElementById("newSubtitle").value =
+            subtitle.childNodes[0].textContent.trim();
+
+
+        /*-----------------------------------------
+            RESTAURAR COLOR DEL TÍTULO
+        -----------------------------------------*/
+
+        const colorTitulo =
+            configuracion.text || "#ffffff";
+
+        titleColor.dataset.colorFinal =
+            colorTitulo;
+
+        titleColor.value =
+            rgbObjetoAHex(
+                obtenerRGBDesdeColor(
+                    colorTitulo
+                )
+            );
+
+
+        /*-----------------------------------------
+            RESTAURAR COLOR DEL SUBTÍTULO
+        -----------------------------------------*/
+
+        const colorSubtitulo =
+            configuracion.textSecondary || "#ffffff";
+
+        subtitleColor.dataset.colorFinal =
+            colorSubtitulo;
+
+        subtitleColor.value =
+            rgbObjetoAHex(
+                obtenerRGBDesdeColor(
+                    colorSubtitulo
+                )
+            );
+
+
+        /*-----------------------------------------
+            RESTAURAR TAMAÑOS
+        -----------------------------------------*/
+
+        titleSize.value =
+            configuracion.titleSize || 48;
+
+        titleSizeValue.textContent =
+            titleSize.value + " px";
+
+        subtitleSize.value =
+            configuracion.subtitleSize || 24;
+
+        subtitleSizeValue.textContent =
+            subtitleSize.value + " px";
+
+        /*-----------------------------------------
+            RESTAURAR TAMAÑO DE LA DESCRIPCIÓN
+        -----------------------------------------*/
+
+        actualizarTamanoDescripcion(
+            configuracion.descriptionSize || 20
+        );
+
+        /*-----------------------------------------
+            RESTAURAR COLORES DESCRIPCIÓN
+        -----------------------------------------*/
+
+        const colorTextoDescripcion =
+            configuracion.descriptionTextColor || "#ffffff";
+
+        descriptionTextColor.dataset.colorFinal =
+            colorTextoDescripcion;
+
+        descriptionTextColor.value =
+            rgbObjetoAHex(
+                obtenerRGBDesdeColor(
+                    colorTextoDescripcion
+                )
+            );
+
+
+        const colorFondoDescripcion =
+            configuracion.descriptionBackgroundColor || "#2b2b2b";
+
+        descriptionBackgroundColor.dataset.colorFinal =
+            colorFondoDescripcion;
+
+        descriptionBackgroundColor.value =
+            rgbObjetoAHex(
+                obtenerRGBDesdeColor(
+                    colorFondoDescripcion
+                )
+            );
+
+
+        /*-----------------------------------------
+            APLICAR AL TEXTAREA
+        -----------------------------------------*/
+
+        profileDescription.style.color =
+            colorTextoDescripcion;
+
+        profileDescription.style.backgroundColor =
+            colorFondoDescripcion;
+
+        /*-----------------------------------------
+            RESTAURAR ALINEACIÓN DEL TÍTULO Y SUBTÍTULO
+        -----------------------------------------*/
+
+        title.style.textAlign =
+            configuracion.titleAlign || "center";
+
+        subtitle.style.textAlign =
+            configuracion.subtitleAlign || "center";
+
+        /*-----------------------------------------
+            RESTAURAR FORMATO DE LA DESCRIPCIÓN
+        -----------------------------------------*/
+
+        const alineacionDescripcion =
+            configuracion.descriptionAlign || "justify";
+
+        desc.style.textAlign =
+            alineacionDescripcion;
+
+        desc.style.textAlignLast =
+            alineacionDescripcion === "center"
+                ? "center"
+                : "left";
+
+        profileDescription.style.textAlign =
+            alineacionDescripcion;
+
+        profileDescription.style.textAlignLast =
+            alineacionDescripcion === "center"
+                ? "center"
+                : "left";
+
+        if(descriptionFont){
+            descriptionFont.value =
+                configuracion.descriptionFont ||
+                configuracion.titleFont ||
+                "'Segoe UI',sans-serif";
+
+            profileDescription.style.fontFamily =
+                descriptionFont.value;
+
+            desc.style.fontFamily =
+                descriptionFont.value;
+        }
+
+
+        /*-----------------------------------------
+            ABRIR MODAL
+        -----------------------------------------*/
+
+
+        cerrarTodosLosModales();
+
+titleModal.style.display = "flex";
+
+/*=========================================
+    GUARDAR ESTADO INICIAL
+=========================================*/
+
+guardarEstadoModal(titleModal);
+
+    };
+
+
+    
+/*=========================================
+    EDITOR COLOR DE FONDO Y BOTONES
+=========================================*/
+
+
+/*====================================================
+    GENERADOR DE COLORES DE TEMAS
+    Usa el mismo sistema de edición y permite activar
+    o desactivar la paleta sin perder los colores generales.
+====================================================*/
+const themeColorsModal=document.getElementById("themeColorsModal");
+const themeBaseColor=document.getElementById("themeBaseColor");
+const themeBaseHex=document.getElementById("themeBaseHex");
+const themeColorScale=document.getElementById("themeColorScale");
+const btnThemePalette=document.getElementById("btnThemePalette");
+const applyThemeColors=document.getElementById("applyThemeColors");
+const closeThemeColorsModal=document.getElementById("closeThemeColorsModal");
+const applyThemeColorsToggle=document.getElementById("applyThemeColorsToggle");
+
+function normalizarHexTema(v){
+    if(!v) return null;
+    let h=String(v).trim();
+    if(!h.startsWith("#")) h="#"+h;
+    if(/^#[0-9a-fA-F]{3}$/.test(h)) h="#"+[...h.slice(1)].map(c=>c+c).join("");
+    return /^#[0-9a-fA-F]{6}$/.test(h)?h.toUpperCase():null;
+}
+
+function hexAToHslTema(hex){
+    const r=parseInt(hex.slice(1,3),16)/255;
+    const g=parseInt(hex.slice(3,5),16)/255;
+    const b=parseInt(hex.slice(5,7),16)/255;
+    const max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min;
+    let h=0;
+
+    if(d){
+        if(max===r) h=((g-b)/d)%6;
+        else if(max===g) h=(b-r)/d+2;
+        else h=(r-g)/d+4;
+        h/=6;
+        if(h<0)h+=1;
+    }
+
+    const l=(max+min)/2;
+    const s=d?d/(1-Math.abs(2*l-1)):0;
+
+    return {h,s,l};
+}
+
+function hslAToHexTema(h,s,l){
+    if(s===0){
+        const v=Math.round(l*255).toString(16).padStart(2,"0");
+        return `#${v}${v}${v}`.toUpperCase();
+    }
+
+    const q=l<.5?l*(1+s):l+s-l*s;
+    const p=2*l-q;
+
+    const hue=t=>{
+        if(t<0)t+=1;
+        if(t>1)t-=1;
+        if(t<1/6)return p+(q-p)*6*t;
+        if(t<1/2)return q;
+        if(t<2/3)return p+(q-p)*(2/3-t)*6;
+        return p;
+    };
+
+    const r=Math.round(hue(h+1/3)*255);
+    const g=Math.round(hue(h)*255);
+    const b=Math.round(hue(h-1/3)*255);
+
+    return `#${r.toString(16).padStart(2,"0")}${g.toString(16).padStart(2,"0")}${b.toString(16).padStart(2,"0")}`.toUpperCase();
+}
+
+function hexAToRgbTema(hex){
+    const h=normalizarHexTema(hex)||"#000000";
+
+    return {
+        r:parseInt(h.slice(1,3),16),
+        g:parseInt(h.slice(3,5),16),
+        b:parseInt(h.slice(5,7),16)
+    };
+}
+
+function rgbTextoTema(hex){
+    const {r,g,b}=hexAToRgbTema(hex);
+    return `rgb(${r}, ${g}, ${b})`;
+}
+
+function colorTextoTema(hex){
+    const {r,g,b}=hexAToRgbTema(hex);
+    const luminancia=(r*299+g*587+b*114)/1000;
+    return luminancia > 160 ? "#111111" : "#ffffff";
+}
+
+function rgbaTema(hex,a){
+    const {r,g,b}=hexAToRgbTema(hex);
+    return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
+function generarPaletaTema(base){
+    const hsl=hexAToHslTema(normalizarHexTema(base)||"#2FD413");
+    const p={};
+
+    [0.86,0.78,0.70,0.62,0.54].forEach((l,i)=>{
+        p[`--color-${(i+1)*100}`]=hslAToHexTema(hsl.h,hsl.s,l);
+    });
+
+    p["--color-600"]=normalizarHexTema(base)||"#2FD413";
+
+    [0.32,0.25,0.17,0.06].forEach((l,i)=>{
+        p[`--color-${700+i*100}`]=hslAToHexTema(hsl.h,hsl.s,l);
+    });
+
+    return p;
+}
+
+function renderizarPaletaTema(){
+
+    if(!themeBaseColor||!themeColorScale)return;
+
+    const base=normalizarHexTema(themeBaseColor.value)||"#2FD413";
+
+    themeBaseColor.value=base;
+
+    if(themeBaseHex) {
+        themeBaseHex.value=base;
+    }
+
+    const p=generarPaletaTema(base);
+    const hsl=hexAToHslTema(base);
+
+    const colores={
+        ...p,
+        "--color-950":hslAToHexTema(hsl.h,hsl.s,.06)
+    };
+
+    const niveles=[100,200,300,400,500,600,700,800,900,950];
+
+    themeColorScale.innerHTML=niveles.map(n=>{
+        const c=colores[`--color-${n}`];
+
+        const rgb = rgbTextoTema(c);
+
+        return `
+            <div class="theme-color-column${n===600?" is-base":""}">
+                <div class="theme-color-swatch"
+                     style="background:${c}"
+                     title="${c}"></div>
+                <span class="theme-color-name">${n}</span>
+
+                <div class="theme-color-values"
+                     style="color:${colorTextoTema(c)}">
+
+                    <span class="theme-color-value theme-color-hex">
+                        ${c}
+                        <button
+                            type="button"
+                            class="theme-color-copy"
+                            data-copy="${c}"
+                            title="Copiar HEX ${c}"
+                            aria-label="Copiar HEX ${c}">
+                            <i class="fa-regular fa-copy" aria-hidden="true"></i>
+                        </button>
+                    </span>
+
+                    <span class="theme-color-value theme-color-rgb">
+                        ${rgb}
+                        <button
+                            type="button"
+                            class="theme-color-copy"
+                            data-copy="${rgb}"
+                            title="Copiar RGB ${rgb}"
+                            aria-label="Copiar RGB ${rgb}">
+                            <i class="fa-regular fa-copy" aria-hidden="true"></i>
+                        </button>
+                    </span>
+
+                </div>
+            </div>
+        `;
+    }).join("");
+
+    themeColorScale.querySelectorAll(".theme-color-copy").forEach(button=>{
+        button.onclick=async()=>{
+
+            try{
+                await navigator.clipboard.writeText(
+                    button.dataset.copy
+                );
+            }catch(e){}
+
+            const icono=button.querySelector("i");
+
+            if(icono){
+                icono.className="fa-solid fa-check";
+            }
+
+            setTimeout(()=>{
+                if(icono){
+                    icono.className="fa-regular fa-copy";
+                }
+            },900);
+
+        };
+    });
+}
+
+function capturarColoresEditor(){
+
+    const valoresModal = {
+        background:document.getElementById("backgroundColor")?.value,
+        button:document.getElementById("buttonColor")?.value,
+        border:document.getElementById("borderColor")?.value,
+        shadow:document.getElementById("shadowColor")?.value,
+        iconColor:document.getElementById("iconColor")?.value,
+        cardColor1:document.getElementById("cardColor1")?.value,
+        cardColor2:document.getElementById("cardColor2")?.value,
+        cardColor3:document.getElementById("cardColor3")?.value
+    };
+
+    Object.entries(valoresModal).forEach(([key,value])=>{
+        if(value){
+            configuracion[key]=value;
+        }
+    });
+
+    configuracion.card =
+        configuracion.cardColor1 ||
+        configuracion.card;
+
+    const keys=[
+        "background",
+        "button",
+        "border",
+        "shadow",
+        "iconColor",
+        "text",
+        "textSecondary",
+        "card",
+        "cardColor1",
+        "cardColor2",
+        "cardColor3",
+        "descriptionTextColor",
+        "descriptionBackgroundColor",
+        "linkTextColor",
+        "socialIconsColor",
+        "logoGradient"
+    ];
+
+    return keys.reduce((backup,key)=>{
+        const value=configuracion[key];
+
+        backup[key]=Array.isArray(value)
+            ? [...value]
+            : value;
+
+        return backup;
+    },{});
+}
+
+function guardarColoresEditorEnBackup(){
+
+    if(!configuracion.themePaletteBackup){
+        configuracion.themePaletteBackup =
+            capturarColoresEditor();
+    }
+
+}
+
+function actualizarInputsDesdeConfiguracion(){
+
+    const setInput=(id,value)=>{
+
+        const element=document.getElementById(id);
+
+        if(!element || value == null)return;
+
+        element.value=normalizarHexTema(value)||value;
+        element.dataset.colorFinal=value;
+
+    };
+
+    setInput("backgroundColor",configuracion.background);
+    setInput("buttonColor",configuracion.button);
+    setInput("borderColor",configuracion.border);
+    setInput("iconColor",configuracion.iconColor);
+    setInput("titleColor",configuracion.text);
+    setInput("subtitleColor",configuracion.textSecondary);
+    setInput("descriptionTextColor",configuracion.descriptionTextColor);
+    setInput("descriptionBackgroundColor",configuracion.descriptionBackgroundColor);
+    setInput("cardColor1",configuracion.cardColor1 || configuracion.card);
+    setInput("cardColor2",configuracion.cardColor2);
+    setInput("cardColor3",configuracion.cardColor3);
+}
+
+function aplicarConfiguracionVisualTema(){
+
+    Object.entries({
+        background:configuracion.background,
+        button:configuracion.button,
+        border:configuracion.border,
+        shadow:configuracion.shadow,
+        text:configuracion.text,
+        "text-secondary":configuracion.textSecondary,
+        "icon-color":configuracion.iconColor
+    }).forEach(([nombre,valor])=>{
+        document.documentElement.style.setProperty(
+            `--${nombre}`,
+            valor
+        );
+    });
+
+    actualizarGradienteTarjeta();
+    aplicarEstiloIconosRedes();
+    actualizarGradienteLogo();
+    crearEditorGradienteLogo();
+    actualizarColorIconosCardStats();
+
+    const descripcion=document.getElementById("description");
+
+    if(descripcion){
+        descripcion.style.color =
+            configuracion.descriptionTextColor;
+        descripcion.style.backgroundColor =
+            configuracion.descriptionBackgroundColor;
+        descripcion.style.fontFamily =
+            configuracion.descriptionFont ||
+            configuracion.titleFont ||
+            "'Segoe UI',sans-serif";
+    }
+}
+
+function restaurarColoresEditor(){
+
+    const backup=configuracion.themePaletteBackup;
+
+    if(!backup)return;
+
+    Object.entries(backup).forEach(([key,value])=>{
+        configuracion[key]=Array.isArray(value)
+            ? [...value]
+            : value;
+    });
+
+    /*
+        Restaurar explícitamente los tres colores de la tarjeta
+        garantiza que el degradado vuelva al estado inicial, aunque
+        durante la aplicación del tema se hayan cambiado otros
+        valores de la configuración.
+    */
+    if(backup.cardColor1){
+        configuracion.cardColor1=backup.cardColor1;
+    }
+
+    if(backup.cardColor2){
+        configuracion.cardColor2=backup.cardColor2;
+    }
+
+    if(backup.cardColor3){
+        configuracion.cardColor3=backup.cardColor3;
+    }
+
+    configuracion.card =
+        backup.cardColor1 ||
+        backup.card ||
+        configuracion.card;
+
+    configuracion.themeColorsEnabled=false;
+
+    aplicarConfiguracionVisualTema();
+    actualizarInputsDesdeConfiguracion();
+
+    /*
+        El respaldo ya fue restaurado. La próxima activación
+        capturará nuevamente el estado real que exista en ese momento.
+    */
+    configuracion.themePaletteBackup=null;
+
+    guardarConfiguracionServidor();
+}
+
+function aplicarPaletaTema(){
+
+    const base=normalizarHexTema(themeBaseColor?.value);
+
+    if(!base){
+        mostrarNotificacionGuardado(
+            "Color no válido",
+            "Selecciona un color HEX válido."
+        );
+        return;
+    }
+
+    guardarColoresEditorEnBackup();
+
+    const p=generarPaletaTema(base);
+    const hsl=hexAToHslTema(base);
+
+    p["--color-950"]=hslAToHexTema(
+        hsl.h,
+        hsl.s,
+        .06
+    );
+
+    configuracion.themePaletteBase=base;
+    configuracion.themePalette=p;
+    configuracion.themeColorsEnabled=true;
+
+    configuracion.background=p["--color-100"];
+    configuracion.button=p["--color-600"];
+    configuracion.border=p["--color-700"];
+    configuracion.shadow=rgbaTema(p["--color-900"],.55);
+    configuracion.iconColor=p["--color-100"];
+    configuracion.text=p["--color-950"];
+    configuracion.textSecondary=p["--color-900"];
+    configuracion.linkTextColor=p["--color-950"];
+    configuracion.descriptionTextColor=p["--color-950"];
+    configuracion.descriptionBackgroundColor=
+        rgbaTema(p["--color-900"],.12);
+    configuracion.socialIconsColor=p["--color-500"];
+
+    configuracion.cardColor1=document.body.classList.contains("dark")
+        ? "#000000"
+        : p["--color-400"];
+
+    configuracion.cardColor2=document.body.classList.contains("dark")
+        ? "#2b2b2b"
+        : p["--color-600"];
+
+    configuracion.cardColor3=document.body.classList.contains("dark")
+        ? "#666666"
+        : p["--color-800"];
+
+    configuracion.card=document.body.classList.contains("dark")
+        ? "#2b2b2b"
+        : p["--color-400"];
+
+    configuracion.logoGradient=document.body.classList.contains("dark")
+        ? [
+            "#000000","#111111","#222222","#333333",
+            "#444444","#555555","#666666","#777777",
+            "#888888","#777777","#666666","#555555",
+            "#444444","#333333","#222222","#111111"
+          ]
+        : [
+            p["--color-100"],p["--color-200"],p["--color-300"],
+            p["--color-400"],p["--color-500"],p["--color-600"],
+            p["--color-700"],p["--color-800"],p["--color-900"],
+            p["--color-950"],p["--color-900"],p["--color-800"],
+            p["--color-700"],p["--color-600"],p["--color-500"],
+            p["--color-400"],p["--color-300"],p["--color-200"]
+          ];
+
+    aplicarConfiguracionVisualTema();
+    actualizarInputsDesdeConfiguracion();
+
+    if(applyThemeColorsToggle){
+        applyThemeColorsToggle.checked=true;
+    }
+
+    guardarConfiguracionServidor();
+
+    themeColorsModal.style.display="none";
+
+    mostrarNotificacionGuardado(
+        "Colores aplicados",
+        "La nueva paleta se aplicó y quedó guardada."
+    );
+}
+
+function abrirModalColoresTemas(){
+
+    if(!themeColorsModal)return;
+
+    cerrarTodosLosModales();
+
+    const base=
+        normalizarHexTema(configuracion.themePaletteBase) ||
+        "#2FD413";
+
+    if(themeBaseColor){
+        themeBaseColor.value=base;
+    }
+
+    if(themeBaseHex){
+        themeBaseHex.value=base;
+    }
+
+    if(applyThemeColorsToggle){
+        const temaActivo =
+            configuracion.themeColorsEnabled === true;
+
+        applyThemeColorsToggle.checked = temaActivo;
+
+        /*
+            Cuando no hay un tema activo, este momento representa
+            el estado inicial que debe recuperarse al activar y
+            desactivar el checkbox. Se captura una sola vez para
+            no sobrescribirlo con los colores ya modificados.
+        */
+        if(!temaActivo && !configuracion.themePaletteBackup){
+            configuracion.themePaletteBackup =
+                capturarColoresEditor();
+        }
+    }
+
+    renderizarPaletaTema();
+
+    themeColorsModal.style.display="flex";
+}
+
+if(btnThemePalette){
+    btnThemePalette.onclick=abrirModalColoresTemas;
+}
+
+if(closeThemeColorsModal){
+    closeThemeColorsModal.onclick=()=>{
+        if(themeColorsModal){
+            themeColorsModal.style.display="none";
+        }
+    };
+}
+
+if(themeColorsModal){
+    themeColorsModal.addEventListener("click",event=>{
+        if(event.target===themeColorsModal){
+            themeColorsModal.style.display="none";
+        }
+    });
+}
+
+if(themeBaseColor){
+
+    themeBaseColor.addEventListener(
+        "input",
+        renderizarPaletaTema
+    );
+
+    themeBaseColor.addEventListener(
+        "click",
+        event=>{
+            event.preventDefault();
+
+            abrirEditorColor({
+                picker:themeBaseColor,
+                despuesDeAplicar:()=>{
+                    const base=
+                        normalizarHexTema(themeBaseColor.value) ||
+                        "#2FD413";
+
+                    themeBaseColor.value=base;
+
+                    if(themeBaseHex){
+                        themeBaseHex.value=base;
+                    }
+
+                    renderizarPaletaTema();
+                }
+            });
+        }
+    );
+}
+
+if(themeBaseHex){
+
+    themeBaseHex.addEventListener(
+        "input",
+        ()=>{
+            const hex=
+                normalizarHexTema(themeBaseHex.value);
+
+            if(hex && themeBaseColor){
+                themeBaseColor.value=hex;
+                renderizarPaletaTema();
+            }
+        }
+    );
+}
+
+if(applyThemeColorsToggle){
+
+    applyThemeColorsToggle.addEventListener(
+        "change",
+        ()=>{
+            if(applyThemeColorsToggle.checked){
+                aplicarPaletaTema();
+            }else{
+                restaurarColoresEditor();
+                mostrarNotificacionGuardado(
+                    "Colores del tema desactivados",
+                    "Se restauraron los colores del Editor de color de fondo y botones."
+                );
+            }
+        }
+    );
+
+}
+
+if(applyThemeColors){
+    applyThemeColors.onclick=()=>{
+
+        if(applyThemeColorsToggle &&
+            !applyThemeColorsToggle.checked){
+
+            restaurarColoresEditor();
+            themeColorsModal.style.display="none";
+            return;
+        }
+
+        aplicarPaletaTema();
+    };
+}
+
+document.getElementById("btnBackground").onclick = () => {
+
+
+    /*=========================================
+        CERRAR OTROS MODALES
+    =========================================*/
+
+    cerrarTodosLosModales();
+
+
+    /*=========================================
+        RESTAURAR DATOS GUARDADOS
+    =========================================*/
+
+    restaurarColores();
+
+    restaurarVistasPreviasActuales();
+
+    restaurarVelocidadAnimaciones();
+
+
+    /* Restaurar fuente */
+
+    if(
+
+        configuracion.font &&
+
+        typeof fuentes !== "undefined"
+
+    ){
+
+        fuentes.value =
+            configuracion.font;
+
+    }
+
+
+    /*=========================================
+        ABRIR
+    =========================================*/
+
+    colorModal.style.display =
+        "flex";
+
+
+
+/*====================================================
+        RESTAURAR GRADIENTE EN EL MODAL
+====================================================*/
+
+document.getElementById(
+    "cardColor1"
+).value =
+    configuracion.cardColor1 ||
+    configuracion.card ||
+    "#202020";
+
+
+document.getElementById(
+    "cardColor2"
+).value =
+    configuracion.cardColor2 ||
+    "#303030";
+
+
+    document.getElementById(
+        "cardColor3"
+    ).value =
+    configuracion.cardColor3 ||
+    "#101010";
+
+    /* Restaurar esquinas de los botones */
+    if(typeof radius !== "undefined" && radius){
+        const valorRadius =
+            Number(configuracion.radius ?? 50);
+
+        radius.value = valorRadius;
+
+        document.documentElement.style.setProperty(
+            "--button-radius",
+            valorRadius + "px"
+        );
+    }
+
+
+    /*=========================================
+        GUARDAR ESTADO INICIAL
+    =========================================*/
+
+    guardarEstadoModal(
+        colorModal
+    );
+
+};
+
+
+
+/*====================================================
+CERRAR MODALES
+====================================================*/
+
+document
+.querySelectorAll(".closeModal")
+.forEach(btn => {
+
+
+btn.onclick = () => {
+
+    const modal = btn.closest(".modal");
+
+    if(!modal){
+
+        return;
+
+    }
+
+
+    /*=========================================
+        ¿HAY CAMBIOS?
+    =========================================*/
+
+
+if(modalTieneCambios()){
+
+    mostrarAdvertenciaCambios(() => {
+
+        /*=========================================
+            RESTAURAR TODO LO QUE NO SE GUARDÓ
+        =========================================*/
+
+        restaurarEstadoModal();
+
+
+        /*=========================================
+            CERRAR MODAL
+        =========================================*/
+
+        cerrarModalDefinitivamente(modal);
+
+    });
+
+    return;
+
+}
+
+    /*=========================================
+        NO HAY CAMBIOS
+    =========================================*/
+
+    cerrarModalDefinitivamente(modal);
+
+};
+
+
+});
+
+/*====================================================
+CERRAR AL HACER CLICK FUERA DEL MODAL
+====================================================*/
+
+window.addEventListener("click", e => {
+
+
+if(!e.target.classList.contains("modal")){
+
+    return;
+
+}
+
+
+const modal = e.target;
+
+
+if(modalTieneCambios()){
+
+    mostrarAdvertenciaCambios(() => {
+
+        /*=========================================
+            RESTAURAR CAMBIOS NO GUARDADOS
+        =========================================*/
+
+        restaurarEstadoModal();
+
+
+        /*=========================================
+            CERRAR MODAL
+        =========================================*/
+
+        cerrarModalDefinitivamente(modal);
+
+    });
+
+    return;
+
+}
+
+cerrarModalDefinitivamente(modal);
+
+
+});
+
+
+
+/*====================================================
+SISTEMA DE ADVERTENCIA Y NOTIFICACIONES
+====================================================*/
+
+const warningModal =
+document.getElementById("warningModal");
+
+const warningCancel =
+document.getElementById("warningCancel");
+
+const warningConfirm =
+document.getElementById("warningConfirm");
+
+const saveNotification =
+document.getElementById("saveNotification");
+
+
+
+
+/*====================================================
+MOSTRAR ADVERTENCIA / CONFIRMACIÓN
+====================================================*/
+
+function mostrarAdvertenciaCambios(
+callback,
+opciones = {}
+){
+
+
+if(!warningModal){
+
+    if(typeof callback === "function"){
+
+        callback();
+
+    }
+
+    return;
+
+}
+
+
+/*=========================================
+    TEXTOS
+=========================================*/
+
+const titulo =
+    opciones.titulo ||
+    "Cambios sin guardar";
+
+const mensaje =
+    opciones.mensaje ||
+    "Has realizado modificaciones que todavía no han sido guardadas.";
+
+const detalle =
+    opciones.detalle ||
+    "Si sales ahora, perderás todos los cambios realizados.";
+
+const textoConfirmar =
+    opciones.textoConfirmar ||
+    "Salir sin guardar";
+
+
+/*=========================================
+    BUSCAR ELEMENTOS
+=========================================*/
+
+const tituloElemento =
+    warningModal.querySelector("h2");
+
+const parrafos =
+    warningModal.querySelectorAll("p");
+
+const botonConfirmar =
+    document.getElementById(
+        "warningConfirm"
+    );
+
+
+/*=========================================
+    CAMBIAR TEXTO
+=========================================*/
+
+if(tituloElemento){
+
+    tituloElemento.textContent =
+        titulo;
+
+}
+
+
+if(parrafos[0]){
+
+    parrafos[0].textContent =
+        mensaje;
+
+}
+
+
+if(parrafos[1]){
+
+    parrafos[1].textContent =
+        detalle;
+
+}
+
+
+if(botonConfirmar){
+
+    botonConfirmar.innerHTML =
+
+        '<i class="fa-solid fa-right-from-bracket"></i> ' +
+
+        textoConfirmar;
+
+}
+
+
+/*=========================================
+    ABRIR
+=========================================*/
+
+warningModal.style.display =
+    "flex";
+
+
+/*=========================================
+    CANCELAR
+=========================================*/
+
+warningCancel.onclick = () => {
+
+    warningModal.style.display =
+        "none";
+
+};
+
+
+/*=========================================
+    CONFIRMAR
+=========================================*/
+
+warningConfirm.onclick = async () => {
+
+    warningModal.style.display =
+        "none";
+
+
+    if(
+        typeof callback ===
+        "function"
+    ){
+
+        await callback();
+
+    }
+
+};
+
+
+}
+
+
+/*====================================================
+MOSTRAR NOTIFICACIÓN DE GUARDADO
+====================================================*/
+
+
+let timerNotificacionGuardado = null;
+
+function mostrarNotificacionGuardado(
+
+
+titulo = "Cambios guardados",
+
+mensaje =
+    "La configuración se guardó correctamente."
+
+
+){
+
+
+if(!saveNotification){
+
+    return;
+
+}
+
+
+/*=========================================
+    BUSCAR TEXTOS
+=========================================*/
+
+const tituloElemento =
+    saveNotification.querySelector(
+        ".save-notification-content strong"
+    );
+
+const mensajeElemento =
+    saveNotification.querySelector(
+        ".save-notification-content span"
+    );
+
+
+/*=========================================
+    ACTUALIZAR TEXTO
+=========================================*/
+
+if(tituloElemento){
+
+    tituloElemento.textContent =
+        titulo;
+
+}
+
+
+if(mensajeElemento){
+
+    mensajeElemento.textContent =
+        mensaje;
+
+}
+
+
+/*=========================================
+    CANCELAR TEMPORIZADOR ANTERIOR
+=========================================*/
+
+clearTimeout(
+    timerNotificacionGuardado
+);
+
+
+/*=========================================
+    REINICIAR ANIMACIÓN
+=========================================*/
+
+saveNotification.classList.remove(
+    "hide"
+);
+
+saveNotification.classList.remove(
+    "show"
+);
+
+
+const barra =
+    saveNotification.querySelector(
+        ".save-notification-progress span"
+    );
+
+
+if(barra){
+
+    barra.style.animation =
+        "none";
+
+    void barra.offsetWidth;
+
+    barra.style.animation =
+        "saveProgress 3.5s linear forwards";
+
+}
+
+
+/*=========================================
+    MOSTRAR
+=========================================*/
+
+void saveNotification.offsetWidth;
+
+saveNotification.classList.add(
+    "show"
+);
+
+
+/*=========================================
+    OCULTAR DESPUÉS DE 3.5 SEGUNDOS
+=========================================*/
+
+timerNotificacionGuardado =
+    setTimeout(() => {
+
+        saveNotification.classList.remove(
+            "show"
+        );
+
+        saveNotification.classList.add(
+            "hide"
+        );
+
+    }, 3500);
+
+
+}
+
+
+/*====================================================
+CERRAR MODAL REALMENTE
+====================================================*/
+
+function cerrarModalDefinitivamente(modal){
+
+
+if(!modal){
+
+    return;
+
+}
+
+
+modal.style.display = "none";
+
+
+if(modalActivo === modal){
+
+    modalActivo = null;
+
+}
+
+
+estadoInicialModal = null;
+
+
+}
+
+
+
+
+/*====================================================
+    VISTA DEL SELECTOR UNIVERSAL DE COLOR
+====================================================*/
+
+function actualizarSelectorUniversalColor(boton, picker, valor = null){
+
+    if(!boton || !picker){
+        return;
+    }
+
+    const color =
+        valor ||
+        picker.dataset.colorFinal ||
+        picker.value ||
+        "#000000";
+
+    const swatch =
+        boton.querySelector(".universal-color-swatch");
+
+    const value =
+        boton.querySelector(".universal-color-value");
+
+    if(swatch){
+        swatch.style.background = color;
+    }
+
+    if(value){
+        value.textContent = color.toUpperCase();
+    }
+}
+
+
+/*====================================================
+    SELECTOR DE COLOR DEL FONDO DEL LOGO
+====================================================*/
+
+function activarSelectorFondoLogo(){
+
+    const boton =
+        document.getElementById("logoBackgroundColorSelector");
+
+    const picker =
+        document.getElementById("logoBackgroundColor");
+
+    if(
+        !boton ||
+        !picker ||
+        boton.dataset.bound === "true"
+    ){
+        return;
+    }
+
+    boton.dataset.bound = "true";
+
+    actualizarSelectorUniversalColor(
+        boton,
+        picker
+    );
+
+    boton.onclick = e => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        abrirEditorColor({
+            picker,
+            despuesDeAplicar: (valor) => {
+
+                picker.dataset.colorFinal = valor;
+
+                actualizarSelectorUniversalColor(
+                    boton,
+                    picker,
+                    valor
+                );
+
+                configuracion.logoBackgroundColor =
+                    valor;
+
+                const box1 =
+                    document.getElementById("box1");
+
+                if(box1){
+                    box1.style.setProperty(
+                        "--logo-background",
+                        valor
+                    );
+                }
+            }
+        });
+    };
+}
+
+/*====================================================
+GUARDAR LOGO
+====================================================*/
+
+document.getElementById("saveLogo").onclick = async () => {
+
+/*==============================
+        TAMAÑO
+==============================*/
+
+configuracion.logoSize =
+    Number(logoSize.value);
+
+actualizarTamanoLogo(
+    configuracion.logoSize
+);
+
+
+/*==============================
+    GUARDAR COLORES DEL ANILLO
+==============================*/
+
+const colores = [];
+
+document
+    .querySelectorAll(
+        "#logoGradientEditor input[type=color]"
+    )
+    .forEach(input => {
+
+        colores.push(input.value);
+
+    });
+
+configuracion.logoGradient =
+    colores;
+
+actualizarGradienteLogo();
+
+const logoBackgroundColor =
+    document.getElementById("logoBackgroundColor");
+
+if(logoBackgroundColor){
+    configuracion.logoBackgroundColor =
+        logoBackgroundColor.dataset.colorFinal ||
+        logoBackgroundColor.value ||
+        "transparent";
+}
+
+const box1 =
+    document.getElementById("box1");
+
+if(box1){
+    box1.style.setProperty(
+        "--logo-background",
+        configuracion.logoBackgroundColor || "transparent"
+    );
+}
+
+
+/*==============================
+        GUARDAR SERVIDOR
+==============================*/
+
+try {
+
+    await guardarConfiguracionServidor();
+
+
+     /*=========================================
+        MOSTRAR NOTIFICACIÓN
+    =========================================*/
+
+mostrarNotificacionGuardado();
+
+
+/*=========================================
+        CERRAR MODAL
+=========================================*/
+
+cerrarModalDefinitivamente(logoModal);
+
+
+} catch (error) {
+
+    console.error(
+        "Error al guardar el logo:",
+        error
+    );
+
+}
+
+};
+
+
+
+/*====================================================
+            LOGO DESDE COMPUTADORA
+====================================================*/
+document.getElementById("logoFile").addEventListener("change", async (e) => {
+
+    const archivo = e.target.files[0];
+
+    if (!archivo) return;
+
+    const datos = new FormData();
+
+    datos.append("logo", archivo);
+
+    try {
+
+        const respuesta = await fetch("/uploadLogo", {
+
+            method: "POST",
+            body: datos
+
+        });
+
+        const resultado = await respuesta.json();
+
+        if (!resultado.ok) {
+
+            alert("No se pudo subir el logo.");
+
+            return;
+
+        }
+
+
+configuracion.logo =
+resultado.logo;
+
+logo.src =
+resultado.logo;
+
+favicon.href =
+resultado.logo;
+
+/*=========================================
+GUARDAR EN SERVIDOR
+=========================================*/
+
+await guardarConfiguracionServidor();
+
+/*=========================================
+ACTUALIZAR ESTADO GUARDADO
+=========================================*/
+
+guardarEstadoModal(logoModal);
+
+/*=========================================
+NOTIFICACIÓN
+=========================================*/
+
+mostrarNotificacionGuardado();
+
+
+
+
+
+    } catch (error) {
+
+        console.error(error);
+
+    }
+
+});
+
+
+
+
+
+/*====================================================
+            GUARDAR TITULO 
+====================================================*/
+document.getElementById("saveTitle").onclick = async () => {
+
+    const nuevoTitulo =
+    document.getElementById("newTitle")
+    .value
+    .trim();
+
+    const nuevoSubtitulo =
+    document.getElementById("newSubtitle")
+    .value
+    .trim();
+
+    const nuevaDescripcion =
+    document.getElementById("profileDescription")
+    .value
+    .trim();
+
+
+
+
+    if(nuevoTitulo !== ""){
+
+        configuracion.title =
+        nuevoTitulo;
+
+        title.childNodes[0].textContent =
+        nuevoTitulo + " ";
+
+        document.title =
+        nuevoTitulo;
+
+    }
+
+    configuracion.subtitle =
+    nuevoSubtitulo;
+
+    configuracion.description =
+    nuevaDescripcion;
+
+
+/*====================================================
+        GUARDAR ESTILO DE LA DESCRIPCIÓN
+====================================================*/
+
+const descripcionElemento = document.getElementById("description");
+
+configuracion.descriptionAlign =
+    profileDescription.style.textAlign ||
+    configuracion.descriptionAlign ||
+    "justify";
+
+/* Aplicar la alineación guardada a la descripción de la tarjeta */
+descripcionElemento.style.textAlign =
+    configuracion.descriptionAlign;
+
+descripcionElemento.style.textAlignLast =
+    configuracion.descriptionAlign === "center"
+        ? "center"
+        : "left";
+
+/* Guardar colores desde los inputs del modal */
+
+configuracion.descriptionTextColor =
+    descriptionTextColor.dataset.colorFinal ||
+    descriptionTextColor.value;
+
+configuracion.descriptionBackgroundColor =
+    descriptionBackgroundColor.dataset.colorFinal ||
+    descriptionBackgroundColor.value;
+
+/* Aplicarlos inmediatamente */
+
+descripcionElemento.style.color =
+    configuracion.descriptionTextColor;
+
+descripcionElemento.style.backgroundColor =
+    configuracion.descriptionBackgroundColor;
+
+
+    profileDescription.style.color =
+    configuracion.descriptionTextColor;
+
+profileDescription.style.backgroundColor =
+    configuracion.descriptionBackgroundColor;
+
+/* Guardar texto */
+
+descripcionElemento.textContent =
+    nuevaDescripcion;
+
+    subtitle.childNodes[0].textContent =
+    nuevoSubtitulo + " ";
+
+
+/*====================================================
+        GUARDAR FUENTE DEL TÍTULO
+====================================================*/
+
+configuracion.titleFont = fuenteTitulo.value;
+
+title.style.fontFamily = fuenteTitulo.value;
+
+subtitle.style.fontFamily = fuenteTitulo.value;
+
+configuracion.descriptionFont =
+    descriptionFont?.value ||
+    configuracion.titleFont;
+
+descripcionElemento.style.fontFamily =
+    configuracion.descriptionFont;
+
+if (descriptionFont) {
+    descriptionFont.value =
+        configuracion.descriptionFont;
+}
+
+const colorDescripcionTexto =
+    configuracion.descriptionTextColor;
+
+const colorDescripcionFondo =
+    configuracion.descriptionBackgroundColor;
+
+descriptionTextColor.value =
+    rgbObjetoAHex(obtenerRGBDesdeColor(colorDescripcionTexto));
+
+descriptionTextColor.dataset.colorFinal =
+    colorDescripcionTexto;
+
+descriptionBackgroundColor.value =
+    rgbObjetoAHex(obtenerRGBDesdeColor(colorDescripcionFondo));
+
+descriptionBackgroundColor.dataset.colorFinal =
+    colorDescripcionFondo;
+
+configuracion.text =
+    titleColor.dataset.colorFinal || titleColor.value;
+
+configuracion.textSecondary =
+    subtitleColor.dataset.colorFinal || subtitleColor.value;
+
+
+
+
+/*====================================================
+        GUARDAR TAMAÑOS
+====================================================*/
+
+configuracion.titleSize = Number(titleSize.value);
+
+configuracion.subtitleSize = Number(subtitleSize.value);
+
+/* Guardar tamaño de la descripción */
+configuracion.descriptionSize =
+    Number(descriptionSize?.value) || 20;
+
+/* Aplicarlo a la tarjeta únicamente al guardar */
+descripcionElemento.style.fontSize =
+    configuracion.descriptionSize + "px";
+
+/* La alineación del título y subtítulo no se modifica desde
+   las herramientas de formato de la descripción. */
+
+
+/* Aplicar colores */
+
+document.documentElement.style.setProperty(
+
+    "--text",
+
+    configuracion.text
+
+);
+
+document.documentElement.style.setProperty(
+
+    "--text-secondary",
+
+    configuracion.textSecondary
+
+);
+
+
+/* Aplicar tamaños */
+
+actualizarTamanoTitulo(
+
+    configuracion.titleSize
+
+);
+
+actualizarTamanoSubtitulo(
+
+    configuracion.subtitleSize
+
+);
+
+
+
+
+
+
+
+
+
+/* Guardar configuración */
+
+
+/*=========================================
+        GUARDAR EN SERVIDOR
+=========================================*/
+
+await guardarConfiguracionServidor();
+
+
+/*=========================================
+        MOSTRAR NOTIFICACIÓN
+=========================================*/
+
+mostrarNotificacionGuardado();
+
+
+/*=========================================
+        CERRAR MODAL DEFINITIVAMENTE
+=========================================*/
+
+cerrarModalDefinitivamente(titleModal);
+
+};
+
+
+/*====================================================
+    HERRAMIENTAS DE LA DESCRIPCIÓN
+====================================================*/
+
+const desc =
+    document.getElementById("description");
+
+
+if (desc) {
+
+    function aplicarVistaPreviaDescripcion(){
+
+        const colorTexto =
+            descriptionTextColor?.dataset.colorFinal ||
+            descriptionTextColor?.value ||
+            configuracion.descriptionTextColor ||
+            "#ffffff";
+
+        const colorFondo =
+            descriptionBackgroundColor?.dataset.colorFinal ||
+            descriptionBackgroundColor?.value ||
+            configuracion.descriptionBackgroundColor ||
+            "rgba(37,37,37,.65)";
+
+        const alineacion =
+            profileDescription.style.textAlign ||
+            configuracion.descriptionAlign ||
+            "justify";
+
+        const fuente =
+            descriptionFont?.value ||
+            configuracion.descriptionFont ||
+            configuracion.titleFont ||
+            "'Segoe UI',sans-serif";
+
+        profileDescription.style.textAlign = alineacion;
+        profileDescription.style.textAlignLast =
+            alineacion === "center"
+                ? "center"
+                : "left";
+
+        profileDescription.style.color = colorTexto;
+        profileDescription.style.backgroundColor = colorFondo;
+        profileDescription.style.fontFamily = fuente;
+
+        /*
+            La vista previa queda limitada al contenido del modal.
+            La tarjeta no se modifica hasta pulsar Guardar.
+        */
+    }
+
+    /*====================================================
+        ALINEACIÓN DE LA DESCRIPCIÓN SOLO EN EL MODAL
+    ====================================================*/
+
+    document
+        .getElementById("descJustify")
+        ?.addEventListener("click",()=>{
+            profileDescription.style.textAlign = "justify";
+            profileDescription.style.textAlignLast = "left";
+        });
+
+    document
+        .getElementById("descCenter")
+        ?.addEventListener("click",()=>{
+            profileDescription.style.textAlign = "center";
+            profileDescription.style.textAlignLast = "center";
+        });
+
+    descriptionTextColor?.addEventListener(
+        "input",
+        aplicarVistaPreviaDescripcion
+    );
+
+    descriptionBackgroundColor?.addEventListener(
+        "input",
+        aplicarVistaPreviaDescripcion
+    );
+
+    descriptionFont?.addEventListener(
+        "change",
+        aplicarVistaPreviaDescripcion
+    );
+
+    descriptionSize?.addEventListener("input",()=>{
+        actualizarTamanoDescripcion(descriptionSize.value);
+    });
+
+}
+
+/* guardado se haga al pulsar Guardar. */
+
+
+titleSize.oninput = ()=>{
+
+    const valor = Number(titleSize.value);
+
+    actualizarTamanoTitulo(valor);
+
+    titleSizeValue.textContent = valor + " px";
+
+};
+
+
+subtitleSize.oninput = ()=>{
+
+    const valor = Number(subtitleSize.value);
+
+    actualizarTamanoSubtitulo(valor);
+
+    subtitleSizeValue.textContent = valor + " px";
+
+};
+
+/*====================================================
+            COLORES
+====================================================*/
+
+const fondo = document.getElementById("backgroundColor");
+
+const tarjeta1 =
+    document.getElementById("cardColor1");
+
+const tarjeta2 =
+    document.getElementById("cardColor2");
+
+const tarjeta3 =
+    document.getElementById("cardColor3");
+
+const botones = document.getElementById("buttonColor");
+
+const borde = document.getElementById("borderColor");
+
+const sombra = document.getElementById("shadowColor");
+
+
+
+
+
+
+/*====================================================
+        EDITOR UNIVERSAL DE COLORES GENERALES
+====================================================*/
+
+vincularEditorUniversal({
+    boton: fondo,
+    picker: fondo,
+    propiedad: "background",
+    variableCSS: "--background",
+    despuesDeAplicar: () => actualizarColorFooter()
+});
+
+
+
+/*====================================================
+        COLOR 1 DEL GRADIENTE
+        EDITOR UNIVERSAL
+====================================================*/
+
+if(tarjeta1){
+
+    tarjeta1.addEventListener(
+        "input",
+        () => {
+
+            configuracion.cardColor1 =
+                tarjeta1.value;
+
+            actualizarGradienteTarjeta();
+
+        }
+    );
+
+
+    vincularEditorUniversal({
+
+        boton: tarjeta1,
+
+        picker: tarjeta1,
+
+        propiedad:
+            "cardColor1",
+
+        variableCSS:
+            "--card-color-1",
+
+        despuesDeAplicar: (valor) => {
+
+            configuracion.cardColor1 =
+                valor;
+
+            actualizarGradienteTarjeta();
+
+        }
+
+    });
+
+}
+
+
+
+
+/*====================================================
+        COLOR 2 DEL GRADIENTE
+        EDITOR UNIVERSAL
+====================================================*/
+
+if(tarjeta2){
+
+    tarjeta2.addEventListener(
+        "input",
+        () => {
+
+            configuracion.cardColor2 =
+                tarjeta2.value;
+
+            actualizarGradienteTarjeta();
+
+        }
+    );
+
+
+    vincularEditorUniversal({
+
+        boton: tarjeta2,
+
+        picker: tarjeta2,
+
+        propiedad:
+            "cardColor2",
+
+        variableCSS:
+            "--card-color-2",
+
+        despuesDeAplicar: (valor) => {
+
+            configuracion.cardColor2 =
+                valor;
+
+            actualizarGradienteTarjeta();
+
+        }
+
+    });
+
+}
+
+
+
+
+/*====================================================
+        COLOR 3 DEL GRADIENTE
+        EDITOR UNIVERSAL
+====================================================*/
+
+if(tarjeta3){
+
+    tarjeta3.addEventListener(
+        "input",
+        () => {
+
+            configuracion.cardColor3 =
+                tarjeta3.value;
+
+            actualizarGradienteTarjeta();
+
+        }
+    );
+
+
+    vincularEditorUniversal({
+
+        boton: tarjeta3,
+
+        picker: tarjeta3,
+
+        propiedad:
+            "cardColor3",
+
+        variableCSS:
+            "--card-color-3",
+
+        despuesDeAplicar: (valor) => {
+
+            configuracion.cardColor3 =
+                valor;
+
+            actualizarGradienteTarjeta();
+
+        }
+
+    });
+
+}
+
+
+
+
+
+vincularEditorUniversal({
+    boton: botones,
+    picker: botones,
+    propiedad: "button",
+    variableCSS: "--button"
+});
+
+vincularEditorUniversal({
+    boton: borde,
+    picker: borde,
+    propiedad: "border",
+    variableCSS: "--border"
+});
+
+vincularEditorUniversal({
+    boton: sombra,
+    picker: sombra,
+    propiedad: "shadow",
+    variableCSS: "--shadow"
+});
+
+
+
+
+
+
+
+
+
+
+/*=====================================================
+        REGISTRAR FUENTE EN EL NAVEGADOR
+=====================================================*/
+
+function registrarFuente(nombre, url) {
+
+    const id = "font-" + nombre.replace(/\s+/g, "-");
+
+    if (document.getElementById(id)) {
+
+        return;
+
+    }
+
+    const style = document.createElement("style");
+
+    style.id = id;
+
+    style.textContent = `
+@font-face{
+    font-family:"${nombre}";
+    src:url("${url}");
+}
+`;
+
+    document.head.appendChild(style);
+
+}
+
+/*=====================================================
+        AGREGAR FUENTE AL SELECT
+=====================================================*/
+
+function agregarFuenteSelect(nombre){
+
+    [fuentes, fuenteTitulo, descriptionFont].forEach(select=>{
+
+        if(!select) return;
+
+        const existe=[...select.options].some(
+            op=>op.value===nombre
+        );
+
+        if(existe) return;
+
+        const opcion=document.createElement("option");
+
+        opcion.value=nombre;
+
+        opcion.textContent=nombre;
+
+        select.appendChild(opcion);
+
+    });
+
+}
+
+/*=====================================================
+        CARGAR TODAS LAS FUENTES
+=====================================================*/
+
+async function cargarFuentes(){
+
+    try{
+
+        const respuesta = await fetch("/fonts-list");
+
+        const resultado = await respuesta.json();
+
+        if(!resultado.ok){
+
+            return;
+
+        }
+
+        resultado.fonts.forEach(fuente=>{
+
+            registrarFuente(
+
+                fuente.name,
+
+                fuente.url
+
+            );
+
+            agregarFuenteSelect(
+
+                fuente.name
+
+            );
+
+        });
+
+if (
+
+    configuracion.titleFont &&
+
+    [...fuenteTitulo.options].some(
+
+        op => op.value === configuracion.titleFont
+
+    )
+
+) {
+
+    fuenteTitulo.value = configuracion.titleFont;
+
+}
+
+    }
+
+    catch(error){
+
+        console.error(
+
+            "Error cargando fuentes:",
+
+            error
+
+        );
+
+    }
+
+}
+
+
+/*=====================================================
+        CAMBIAR FUENTE DEL TÍTULO
+=====================================================*/
+
+titleFont.addEventListener("change",()=>{
+
+    if(!title || !subtitle) return;
+
+    title.style.fontFamily = titleFont.value;
+
+    subtitle.style.fontFamily = titleFont.value;
+
+});
+
+
+
+/*====================================================
+        SUBIR FUENTE AL SERVIDOR
+====================================================*/
+
+fontFile.addEventListener("change", async (e) => {
+
+    const archivo = e.target.files[0];
+
+    if (!archivo) return;
+
+    const datos = new FormData();
+
+    datos.append("font", archivo);
+
+    try{
+
+        const respuesta = await fetch("/uploadFont",{
+
+            method:"POST",
+
+            body:datos
+
+        });
+
+        const resultado = await respuesta.json();
+
+        if(!resultado.ok){
+
+            alert(resultado.error || "No se pudo subir la fuente.");
+
+            return;
+
+        }
+
+        registrarFuente(
+
+            resultado.font,
+
+            resultado.url
+
+        );
+
+        agregarFuenteSelect(
+
+            resultado.font
+
+        );
+
+        fuenteTitulo.value = resultado.font;
+
+        title.style.fontFamily = resultado.font;
+
+        subtitle.style.fontFamily = resultado.font;
+
+
+
+    }
+
+    catch(error){
+
+        console.error(error);
+
+    }
+
+    finally{
+
+        fontFile.value = "";
+
+    }
+
+});
+
+
+
+/*====================================================
+        IMAGEN DE FONDO PENDIENTE
+====================================================*/
+
+let imagenCardPendiente = null;
+
+/*====================================================
+            FONDO DE CARD
+====================================================*/
+
+
+const backgroundImage = document.getElementById("backgroundImage");
+
+/*====================================================
+        SELECCIONAR IMAGEN DE FONDO
+        NO SUBIR TODAVÍA
+====================================================*/
+
+backgroundImage.addEventListener(
+    "change",
+    (e) => {
+
+        const archivo =
+            e.target.files[0];
+
+
+        if(!archivo){
+
+            imagenCardPendiente = null;
+
+            return;
+
+        }
+
+
+        /*
+            Guardamos solamente el archivo
+            en memoria.
+
+            TODAVÍA NO se envía al servidor.
+        */
+
+        imagenCardPendiente =
+            archivo;
+
+
+        /*
+            Vista previa inmediata
+        */
+
+        const vistaPrevia =
+            URL.createObjectURL(
+                archivo
+            );
+
+
+        const card =
+            document.querySelector(".card");
+
+
+if(card){
+
+    const color1 =
+    configuracion.cardColor1 ||
+    configuracion.card ||
+    "#202020";
+
+const degradadoColor1 =
+    `linear-gradient(
+        to top,
+        ${color1} 0%,
+        ${color1} 20%,
+        rgba(0,0,0,0) 65%,
+        rgba(0,0,0,0) 100%
+    )`;
+
+card.style.backgroundImage = `
+    ${degradadoColor1},
+    url("${vistaPrevia}")
+`;
+
+card.style.backgroundSize =
+    "cover, cover";
+
+card.style.backgroundPosition =
+    "center, center";
+
+card.style.backgroundRepeat =
+    "no-repeat, no-repeat";
+}
+
+    }
+);
+
+
+
+/*=========================================
+    QUITAR IMAGEN DE LA TARJETA
+=========================================*/
+
+async function eliminarImagenTarjeta(){
+
+    try{
+        const respuesta = await fetch("/removeCardImage", {
+            method:"POST"
+        });
+
+        const resultado = await respuesta.json();
+
+        if(!resultado.ok){
+            throw new Error("No se pudo eliminar la imagen.");
+        }
+
+        configuracion.cardImage = "";
+        await guardarConfiguracionServidor();
+
+        const preview=document.getElementById("backgroundImagePreview");
+        const box=preview?.closest(".file-preview-box");
+
+        if(preview){
+            preview.src="";
+            preview.style.display="none";
+        }
+
+        box?.classList.remove("has-image");
+
+        actualizarGradienteTarjeta();
+
+    }catch(error){
+        console.error("Error eliminando imagen de tarjeta:", error);
+        mostrarNotificacionGuardado(
+            "No se pudo eliminar la imagen",
+            error.message
+        );
+    }
+}
+
+/*=========================================
+    RESTAURAR DEGRADADO DE 3 COLORES
+=========================================*/
+
+actualizarGradienteTarjeta();
+
+
+
+
+
+
+/*====================================================
+        APLICAR MARCA DE AGUA SVG
+====================================================*/
+
+function aplicarMarcaAguaTarjeta(){
+
+    const card =
+        document.querySelector(
+            ".card"
+        );
+
+
+    if(!card){
+
+        return;
+
+    }
+
+
+    const logo =
+        configuracion.cardWatermark;
+
+
+    /*-----------------------------------------
+        NO EXISTE LOGO
+    -----------------------------------------*/
+
+if(!logo){
+
+    card.classList.remove(
+        "has-watermark"
+    );
+
+    document.documentElement.style
+        .setProperty(
+            "--card-watermark",
+            "none"
+        );
+
+
+    /*=========================================
+        LIMPIAR PATRÓN SVG
+    =========================================*/
+
+    const contenedor =
+        document.querySelector(
+            ".card-watermark-container"
+        );
+
+    if(contenedor){
+
+        contenedor.innerHTML = "";
+
+    }
+
+
+    return;
+}
+
+
+    /*-----------------------------------------
+        EVITAR CACHE DEL SVG
+    -----------------------------------------*/
+
+    const logoActualizado =
+        logo +
+        "?v=" +
+        Date.now();
+
+
+    /*-----------------------------------------
+        APLICAR SVG
+    -----------------------------------------*/
+
+    document.documentElement.style
+        .setProperty(
+            "--card-watermark",
+            `url("${logoActualizado}")`
+        );
+
+
+    /*-----------------------------------------
+        ACTIVAR MARCA DE AGUA
+    -----------------------------------------*/
+
+   card.classList.add(
+    "has-watermark"
+);
+
+
+/*====================================================
+    CREAR PATRÓN ESCALONADO SVG
+====================================================*/
+
+crearPatronMarcaAgua();
+
+
+/* Aplicación silenciosa de la marca de agua. */
+
+}
+
+
+/*====================================================
+        LOGO SVG MARCA DE AGUA
+====================================================*/
+
+const cardWatermarkLogo =
+    document.getElementById(
+        "cardWatermarkLogo"
+    );
+
+
+if(cardWatermarkLogo){
+
+    cardWatermarkLogo.addEventListener(
+        "change",
+        async (e) => {
+
+
+            const archivo =
+                e.target.files[0];
+
+
+            if(!archivo){
+
+                return;
+
+            }
+
+
+            /*-----------------------------------------
+                VALIDAR SVG
+            -----------------------------------------*/
+
+            const extension =
+                archivo.name
+                .toLowerCase()
+                .split(".")
+                .pop();
+
+
+            if(
+                extension !== "svg" &&
+                archivo.type !==
+                "image/svg+xml"
+            ){
+
+                alert(
+                    "Solo puedes subir archivos SVG."
+                );
+
+                e.target.value = "";
+
+                return;
+
+            }
+
+
+            /*-----------------------------------------
+                FORM DATA
+            -----------------------------------------*/
+
+            const datos =
+                new FormData();
+
+
+            datos.append(
+                "cardWatermark",
+                archivo
+            );
+
+
+            try{
+
+                const respuesta =
+                    await fetch(
+                        "/uploadCardWatermark",
+                        {
+
+                            method:"POST",
+
+                            body:datos
+
+                        }
+                    );
+
+
+                const resultado =
+                    await respuesta.json();
+
+
+                if(!resultado.ok){
+
+                    alert(
+                        resultado.error ||
+                        "No se pudo subir el logo."
+                    );
+
+                    return;
+
+                }
+
+
+                /*-----------------------------------------
+                    GUARDAR RUTA TEMPORAL
+                -----------------------------------------*/
+
+
+configuracion.cardWatermark =
+    resultado.cardWatermark;
+
+
+/*-----------------------------------------
+    GUARDAR CONFIGURACIÓN
+-----------------------------------------*/
+
+await guardarConfiguracionServidor();
+
+
+/*-----------------------------------------
+    APLICAR MARCA DE AGUA
+-----------------------------------------*/
+
+aplicarMarcaAguaTarjeta();
+
+
+/*-----------------------------------------
+    VERIFICAR QUE EL SVG RESPONDE
+-----------------------------------------*/
+
+const imagenPrueba =
+    new Image();
+
+imagenPrueba.onload = () => {
+
+    console.log(
+        "SVG cargado correctamente:",
+        resultado.cardWatermark
+    );
+
+};
+
+
+imagenPrueba.onerror = () => {
+
+    console.error(
+        "El SVG fue guardado pero el navegador no pudo cargarlo:",
+        resultado.cardWatermark
+    );
+
+};
+
+
+imagenPrueba.src =
+    resultado.cardWatermark +
+    "?v=" +
+    Date.now();
+
+
+
+
+                /*-----------------------------------------
+                    MARCAR CAMBIO
+                -----------------------------------------*/
+
+                /*
+                    No guardamos la configuración
+                    general aquí.
+
+                    El archivo SVG sí fue subido
+                    al servidor porque es necesario
+                    para poder mostrarlo.
+                */
+
+                e.target.value = "";
+
+
+            }catch(error){
+
+                console.error(
+                    "Error subiendo logo SVG:",
+                    error
+                );
+
+            }
+
+        }
+    );
+
+}
+
+/*====================================================
+        COLOR DE LOS ICONOS
+====================================================*/
+
+/*
+    La campana grande del Recordatorio recibe un color inline
+    cuando se abre el editor. Ese color quedaba congelado y por eso
+    no seguía los cambios globales de "Color de los iconos".
+
+    Centralizamos la sincronización aquí para actualizar únicamente
+    la campana grande (.reminder-bell-left) sin tocar la campana
+    pequeña ni repetir la lógica de color.
+*/
+function actualizarColorCampanasRecordatorio(color){
+
+    document.querySelectorAll(
+        "#linksContainer .link-original-icon.fa-bell, " +
+        "#linksContainer .link-original-icon.fa-solid.fa-bell, " +
+        "#linksContainer .reminder-bell-left, " +
+        "#linksContainer .reminder-bell-left i"
+    ).forEach(icono => {
+
+        icono.style.setProperty(
+            "color",
+            color,
+            "important"
+        );
+
+    });
+
+}
+
+const colorIconos = document.getElementById("iconColor");
+
+vincularEditorUniversal({
+
+    boton: colorIconos,
+
+    picker: colorIconos,
+
+    propiedad: "iconColor",
+
+    variableCSS: "--link-icon-color",
+
+    despuesDeAplicar:(valor)=>{
+
+        document.documentElement.style.setProperty(
+
+            "--link-icon-color",
+
+            valor
+
+        );
+
+        actualizarColorCampanasRecordatorio(
+            valor
+        );
+
+        configuracion.iconColor = valor;
+
+    }
+
+});
+
+
+/*====================================================
+        ICONO → TEXTO AUTOMÁTICO
+====================================================*/
+
+const linkIcon = document.getElementById("linkIcon");
+const linkTitle = document.getElementById("linkTitle");
+
+if (linkIcon && linkTitle) {
+
+    linkIcon.addEventListener("change", () => {
+
+        const opcionSeleccionada =
+            linkIcon.options[linkIcon.selectedIndex];
+
+        if (!opcionSeleccionada) return;
+
+        const nombreIcono =
+            opcionSeleccionada.textContent.trim();
+
+        linkTitle.value =
+            nombreIcono;
+
+        actualizarCamposSocialesEditor();
+
+        if(linkIcon.value === "fa-solid fa-bell"){
+
+            [
+                "reminderStartDate",
+                "reminderStartTime",
+                "reminderEndDate",
+                "reminderEndTime",
+                "reminderMessage",
+                "reminderWhatsappMessage",
+                "reminderLeftMessageTime"
+            ].forEach(id => {
+                const control =
+                    document.getElementById(id);
+
+                if(control){
+                    control.value = "";
+                }
+            });
+
+            const whatsapp =
+                document.getElementById(
+                    "reminderWhatsappEnabled"
+                );
+
+            const left =
+                document.getElementById(
+                    "reminderLeftMessageEnabled"
+                );
+
+            if(whatsapp) whatsapp.checked = false;
+            if(left) left.checked = false;
+
+            const frequency =
+                document.getElementById(
+                    "reminderLeftMessageFrequency"
+                );
+
+            if(frequency){
+                frequency.value = "1";
+            }
+
+            activarEditorRecordatorio();
+        }
+
+    });
+
+}
+
+
+/*====================================================
+    PAÍSES DEL RECORDATORIO
+====================================================*/
+
+const REMINDER_COUNTRIES = [
+    ["+51","Perú"],["+1","Estados Unidos / Canadá"],["+52","México"],
+    ["+57","Colombia"],["+56","Chile"],["+54","Argentina"],
+    ["+55","Brasil"],["+58","Venezuela"],["+593","Ecuador"],
+    ["+591","Bolivia"],["+595","Paraguay"],["+598","Uruguay"],
+    ["+34","España"],["+33","Francia"],["+49","Alemania"],
+    ["+39","Italia"],["+44","Reino Unido"],["+351","Portugal"],
+    ["+81","Japón"],["+82","Corea del Sur"],["+86","China"],
+    ["+91","India"],["+61","Australia"]
+];
+
+
+/*====================================================
+    CAMPOS DINÁMICOS DEL EDITOR DE BOTONES
+====================================================*/
+
+
+
+
+/*====================================================
+    ESTADO DEL LÍMITE DE BOTONES
+====================================================*/
+
+
+function mostrarEstadoLimiteBotones(totalBotones, puedeCrear = true){
+
+    const modal =
+        document.getElementById("warningModal");
+
+    if(!modal){
+        return;
+    }
+
+    const disponibles =
+        Math.max(LIMITE_BOTONES - totalBotones, 0);
+
+    const porcentaje =
+        Math.min(
+            Math.round((totalBotones / LIMITE_BOTONES) * 100),
+            100
+        );
+
+    const titulo = modal.querySelector("h2");
+    const parrafos = modal.querySelectorAll("p");
+    const icono = modal.querySelector(".warning-icon i");
+    const barra = modal.querySelector(".warning-progress span");
+    const botones = modal.querySelector(".warning-buttons");
+
+    if(icono){
+        icono.className = puedeCrear
+            ? "fa-solid fa-circle-info"
+            : "fa-solid fa-triangle-exclamation";
+    }
+
+    if(titulo){
+        titulo.textContent = puedeCrear
+            ? "Estado de tus botones"
+            : "Límite de botones alcanzado";
+    }
+
+    if(parrafos[0]){
+        parrafos[0].innerHTML =
+            `Tienes <strong>${totalBotones}</strong> de <strong>${LIMITE_BOTONES}</strong> botones creados.`;
+    }
+
+    if(parrafos[1]){
+        parrafos[1].innerHTML = puedeCrear
+            ? `Te quedan <strong>${disponibles}</strong> botón(es) disponibles. Máximo permitido: <strong>${LIMITE_BOTONES}</strong>.`
+            : `Ya utilizaste los <strong>${LIMITE_BOTONES}</strong> botones permitidos. No puedes crear otro hasta eliminar uno.`;
+    }
+
+    if(barra){
+        barra.style.width = porcentaje + "%";
+        barra.style.background = porcentaje >= 100 ? "#ff3b30" : "#ffb300";
+    }
+
+    let porcentajeEl = modal.querySelector(".warning-percentage");
+    if(!porcentajeEl){
+        porcentajeEl = document.createElement("div");
+        porcentajeEl.className = "warning-percentage";
+        const progress = modal.querySelector(".warning-progress");
+        if(progress){
+            progress.insertAdjacentElement("afterend", porcentajeEl);
+        }
+    }
+    porcentajeEl.innerHTML = `<strong>${porcentaje}%</strong> del límite utilizado`;
+
+    if(botones){
+        botones.innerHTML = puedeCrear
+            ? `
+                <button type="button" id="warningCancel" class="warning-continue">
+                    <i class="fa-solid fa-xmark"></i>
+                    Cancelar
+                </button>
+                <button type="button" id="warningConfirm" class="warning-exit">
+                    <i class="fa-solid fa-plus"></i>
+                    Crear botón
+                </button>
+            `
+            : `
+                <button type="button" id="warningCancel" class="warning-continue">
+                    <i class="fa-solid fa-check"></i>
+                    Entendido
+                </button>
+                <button type="button" id="warningConfirm" class="warning-exit" style="display:none;">
+                    Cerrar
+                </button>
+            `;
+    }
+
+    modal.style.display = "flex";
+
+    const cancelar = document.getElementById("warningCancel");
+    const confirmar = document.getElementById("warningConfirm");
+
+    if(cancelar){
+        cancelar.onclick = () => {
+            modal.style.display = "none";
+        };
+    }
+
+    if(confirmar && puedeCrear){
+        confirmar.onclick = async () => {
+            modal.style.display = "none";
+
+            const totalActual = document.querySelectorAll(
+                "#linksContainer .link-card"
+            ).length;
+
+            if(totalActual >= LIMITE_BOTONES){
+                mostrarEstadoLimiteBotones(totalActual, false);
+                return;
+            }
+
+            agregarBoton();
+            await guardarBotones();
+            activarBotones();
+            activarLinks();
+            activarDragDrop();
+            activarBotonesInfoUsuario();
+        };
+    }
+}
+
+
+    /*====================================================
+                EDITOR DE BOTONES
+    ====================================================*/
+
+    let botonSeleccionado = null;
+
+
+/*====================================================
+    INFORMACIÓN MANUAL DEL BOTÓN / RED SOCIAL
+====================================================*/
+
+let socialPhotoPendingFile = null;
+
+function detectarTipoEnlace(url = "", icono = ""){
+    const valor = `${url} ${icono}`.toLowerCase();
+
+    /*
+        El icono seleccionado en el Editor tiene prioridad para
+        Recordatorio. Así un enlace que contenga "whatsapp", "youtube",
+        etc. no impide guardar correctamente un botón configurado como
+        Recordatorio.
+    */
+    if(
+        valor.includes("fa-bell") ||
+        valor.includes("fa-calendar") ||
+        valor.includes("recordatorio")
+    ){
+        return "recordatorio";
+    }
+
+    if(
+        valor.includes("whatsapp") ||
+        valor.includes("wa.me")
+    ){
+        return "whatsapp";
+    }
+
+    if(
+        valor.includes("facebook") ||
+        valor.includes("fb.com")
+    ){
+        return "facebook";
+    }
+
+    if(valor.includes("instagram")){
+        return "instagram";
+    }
+
+    if(valor.includes("tiktok")){
+        return "tiktok";
+    }
+
+    if(
+        valor.includes("youtube") ||
+        valor.includes("youtu.be")
+    ){
+        return "youtube";
+    }
+
+    if(
+        valor.includes("graduation-cap") ||
+        valor.includes("curso")
+    ){
+        return "curso";
+    }
+
+    if(
+        valor.includes("fa-file-pdf") ||
+        /\.pdf(?:[?#].*)?$/i.test(url)
+    ){
+        return "pdf";
+    }
+
+    return "generic";
+}
+
+function obtenerYouTubeThumbnail(url = ""){
+    try{
+
+        const u = new URL(url);
+
+        /*
+            La miniatura automática se obtiene exclusivamente
+            desde la URL de YouTube del campo superior.
+            Se utiliza el formato estándar:
+            https://www.youtube.com/watch?v=VIDEO_ID
+        */
+
+        const esYouTube =
+            u.hostname === "youtube.com" ||
+            u.hostname === "www.youtube.com" ||
+            u.hostname.endsWith(".youtube.com");
+
+        if(!esYouTube || u.pathname !== "/watch"){
+            return "";
+        }
+
+        const id =
+            u.searchParams.get("v") || "";
+
+        if(!id){
+            return "";
+        }
+
+        return `https://img.youtube.com/vi/${encodeURIComponent(id)}/hqdefault.jpg`;
+
+    }catch(error){
+
+        return "";
+
+    }
+}
+
+function escaparHTML(valor = ""){
+    return String(valor)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+/*====================================================
+    AMPLIAR MINIATURAS DEL PROYECTO
+    - 4x respecto al tamaño visible
+    - centrada dentro del modal si existe
+    - muestra la imagen completa sin recorte
+    - vuelve automáticamente a normal después de 3 segundos
+====================================================*/
+
+function abrirMiniaturaAmpliada(imagenOrigen){
+
+    if(!imagenOrigen){
+        return;
+    }
+
+    const src =
+        imagenOrigen.currentSrc ||
+        imagenOrigen.src ||
+        "";
+
+    if(!src){
+        return;
+    }
+
+    const modalPadre =
+        imagenOrigen.closest(".modal");
+
+    const contenedor =
+        modalPadre || document.body;
+
+    const overlay =
+        document.createElement("div");
+
+    overlay.className =
+        "project-thumbnail-lightbox";
+
+    if(modalPadre){
+        overlay.classList.add("inside-modal");
+    }
+
+    const imagen =
+        document.createElement("img");
+
+    imagen.src = src;
+    imagen.alt =
+        imagenOrigen.alt ||
+        "Imagen ampliada";
+
+    overlay.appendChild(imagen);
+    contenedor.appendChild(overlay);
+
+    const mostrar = () => {
+
+        const rect =
+            imagenOrigen.getBoundingClientRect();
+
+        const miniW =
+            Math.max(
+                1,
+                rect.width ||
+                imagenOrigen.clientWidth ||
+                40
+            );
+
+        const miniH =
+            Math.max(
+                1,
+                rect.height ||
+                imagenOrigen.clientHeight ||
+                40
+            );
+
+        /* EXACTAMENTE 4 veces el tamaño visible de la miniatura. */
+        imagen.style.width =
+            `${miniW * 4}px`;
+
+        imagen.style.height =
+            `${miniH * 4}px`;
+
+        imagen.style.maxWidth =
+            "92%";
+
+        imagen.style.maxHeight =
+            "88%";
+
+        imagen.style.objectFit =
+            "contain";
+
+        requestAnimationFrame(() => {
+            overlay.classList.add("is-visible");
+        });
+    };
+
+    if(imagen.complete && imagen.naturalWidth){
+        mostrar();
+    }else{
+        imagen.addEventListener(
+            "load",
+            mostrar,
+            {once:true}
+        );
+    }
+
+    const cerrar = () => {
+
+        if(!overlay.isConnected){
+            return;
+        }
+
+        overlay.classList.remove("is-visible");
+
+        setTimeout(() => {
+            overlay.remove();
+        }, 220);
+    };
+
+    overlay.addEventListener(
+        "click",
+        cerrar
+    );
+
+    /* A los 3 segundos vuelve al estado normal. */
+    setTimeout(() => {
+
+        if(overlay.isConnected){
+            cerrar();
+        }
+
+    }, 3000);
+}
+
+function normalizarIconoEditor(icono = "", tipo = ""){
+    const valor = String(icono || "")
+        .replace(/\blink-original-icon\b/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    if(tipo === "recordatorio"){
+        return "fa-solid fa-bell";
+    }
+
+    return valor;
+}
+
+function obtenerIconoActualEditor(){
+    return normalizarIconoEditor(
+        document.getElementById("linkIcon")?.value || ""
+    );
+}
+
+function actualizarVistaPreviaFotoEditor(url = ""){
+    const preview = document.getElementById("linkSocialPhotoPreview");
+    const box = preview?.closest(".file-preview-box");
+
+    if(!preview){
+        return;
+    }
+
+    preview.src = url || "";
+    preview.style.display = url ? "block" : "none";
+
+    if(box){
+        box.classList.toggle(
+            "has-image",
+            Boolean(url)
+        );
+    }
+
+    if(url){
+        ajustarCajaMiniatura(preview);
+    }
+}
+
+async function eliminarMiniaturaSocialEditor(){
+
+    const card = botonSeleccionado;
+    const ruta = card?.dataset.socialPhoto || "";
+
+    socialPhotoPendingFile = null;
+
+    const input = document.getElementById("linkSocialPhoto");
+    if(input){
+        input.value = "";
+    }
+
+    if(ruta){
+        try{
+            const respuesta = await fetch("/deleteSocialImage", {
+                method:"POST",
+                headers:{"Content-Type":"application/json"},
+                body:JSON.stringify({path:ruta})
+            });
+            const resultado = await respuesta.json();
+            if(!respuesta.ok || !resultado.ok){
+                throw new Error(resultado.error || "No se pudo eliminar la imagen.");
+            }
+        }catch(error){
+            console.error("Error eliminando miniatura:", error);
+            mostrarNotificacionGuardado("No se pudo eliminar la miniatura", error.message);
+            return;
+        }
+    }
+
+    if(card){
+        card.dataset.socialPhoto = "";
+    }
+
+    actualizarVistaPreviaFotoEditor("");
+
+    if(card){
+        try{
+            await guardarBotones();
+        }catch(error){
+            console.error("Error guardando eliminación de miniatura:", error);
+        }
+    }
+}
+
+function activarBotonesEliminarMiniaturas(){
+
+    document.querySelectorAll(".file-upload-preview .file-preview-box").forEach(box => {
+        if(box.dataset.removeBound === "true") return;
+        box.dataset.removeBound = "true";
+
+        const img = box.querySelector("img");
+        if(!img) return;
+
+        const boton = document.createElement("button");
+        boton.type = "button";
+        boton.className = "preview-remove-button";
+        boton.setAttribute("aria-label", "Eliminar miniatura");
+        boton.title = "Eliminar miniatura";
+        boton.innerHTML = '<i class="fa-solid fa-trash"></i>';
+
+        /* La papelera pertenece al contenedor de carga, no a la
+           caja de vista previa, para que siempre quede fuera. */
+        const uploadWrapper = box.closest(".file-upload-preview");
+        (uploadWrapper || box).appendChild(boton);
+
+        boton.addEventListener("click", async e => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const id = img.id;
+
+            if(id === "linkSocialPhotoPreview"){
+                await eliminarMiniaturaSocialEditor();
+                return;
+            }
+
+            if(id === "logoFilePreview"){
+                try{
+                    const respuesta = await fetch("/removeLogo", {method:"POST"});
+                    const resultado = await respuesta.json();
+                    if(!resultado.ok) throw new Error(resultado.error || "No se pudo eliminar el logo.");
+                    configuracion.logo = "";
+                    img.src = "";
+                    img.style.display = "none";
+                    box.classList.remove("has-image");
+                    if(typeof logo !== "undefined") logo.src = "";
+                    if(typeof favicon !== "undefined") favicon.href = "";
+                }catch(error){
+                    mostrarNotificacionGuardado("No se pudo eliminar el logo", error.message);
+                }
+                return;
+            }
+
+            if(id === "backgroundImagePreview"){
+                await eliminarImagenTarjeta();
+                return;
+            }
+
+            if(id === "cardWatermarkLogoPreview"){
+                await eliminarMarcaAguaTarjeta();
+            }
+        });
+    });
+}
+
+function limpiarFotoPendienteEditor(){
+    socialPhotoPendingFile = null;
+
+    const input = document.getElementById("linkSocialPhoto");
+
+    if(input){
+        input.value = "";
+    }
+}
+
+
+/*====================================================
+    RECORDATORIOS
+====================================================*/
+
+
+const REMINDER_TIMEZONES = [
+    ["America/Lima","Perú"],
+    ["America/Bogota","Colombia"],
+    ["America/Santiago","Chile"],
+    ["America/Argentina/Buenos_Aires","Argentina"],
+    ["America/Sao_Paulo","Brasil"],
+    ["America/Caracas","Venezuela"],
+    ["America/Guayaquil","Ecuador"],
+    ["America/La_Paz","Bolivia"],
+    ["America/Asuncion","Paraguay"],
+    ["America/Montevideo","Uruguay"],
+    ["America/Mexico_City","México"],
+    ["America/New_York","Estados Unidos - Nueva York"],
+    ["America/Chicago","Estados Unidos - Chicago"],
+    ["America/Denver","Estados Unidos - Denver"],
+    ["America/Los_Angeles","Estados Unidos - Los Ángeles"],
+    ["America/Toronto","Canadá"],
+    ["Europe/Madrid","España"],
+    ["Europe/London","Reino Unido"],
+    ["Europe/Paris","Francia"],
+    ["Europe/Berlin","Alemania"],
+    ["Europe/Rome","Italia"],
+    ["Europe/Lisbon","Portugal"],
+    ["Asia/Tokyo","Japón"],
+    ["Asia/Seoul","Corea del Sur"],
+    ["Asia/Shanghai","China"],
+    ["Asia/Kolkata","India"],
+    ["Australia/Sydney","Australia"],
+    ["Africa/Cairo","Egipto"],
+    ["Africa/Johannesburg","Sudáfrica"],
+    ["Asia/Dubai","Emiratos Árabes Unidos"],
+    ["Asia/Singapore","Singapur"],
+    ["Pacific/Auckland","Nueva Zelanda"],
+    ["UTC","UTC"]
+];
+
+function inicializarPaisesRecordatorio(){
+
+    const select =
+        document.getElementById("reminderPhoneCountry");
+
+    if(select && select.dataset.bound !== "true"){
+        REMINDER_COUNTRIES.forEach(([codigo,nombre]) => {
+            const option = document.createElement("option");
+            option.value = codigo;
+            option.textContent = `${nombre} (${codigo})`;
+            select.appendChild(option);
+        });
+
+        select.value = "+51";
+        select.dataset.bound = "true";
+    }
+
+    const timezone =
+        document.getElementById("reminderTimezone");
+
+    if(timezone && timezone.dataset.bound !== "true"){
+        REMINDER_TIMEZONES.forEach(([zona,nombre]) => {
+            const option = document.createElement("option");
+            option.value = zona;
+            option.textContent = nombre;
+            timezone.appendChild(option);
+        });
+
+        const zonaDispositivo =
+            Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Lima";
+
+        timezone.value =
+            REMINDER_TIMEZONES.some(item => item[0] === zonaDispositivo)
+                ? zonaDispositivo
+                : "America/Lima";
+
+        timezone.dataset.bound = "true";
+    }
+}
+
+function actualizarContadorRecordatorio(){
+
+    const input =
+        document.getElementById("reminderMessage");
+
+    const counter =
+        document.getElementById("reminderMessageCounter");
+
+    if(input && counter){
+        input.value =
+            input.value.slice(0,1000);
+
+        counter.textContent =
+            `${input.value.length} / 1000`;
+    }
+}
+
+function cargarCamposRecordatorio(card){
+
+    inicializarPaisesRecordatorio();
+
+    const data = card?.dataset || {};
+
+    const country =
+        document.getElementById("reminderPhoneCountry");
+
+    const phone =
+        document.getElementById("reminderPhone");
+
+    const startDate =
+        document.getElementById("reminderStartDate");
+
+    const startTime =
+        document.getElementById("reminderStartTime");
+
+    const endDate =
+        document.getElementById("reminderEndDate");
+
+    const endTime =
+        document.getElementById("reminderEndTime");
+
+    const timezone =
+        document.getElementById("reminderTimezone");
+
+    const message =
+        document.getElementById("reminderMessage");
+
+    const whatsappEnabled =
+        document.getElementById("reminderWhatsappEnabled");
+
+    const whatsappMessage =
+        document.getElementById("reminderWhatsappMessage");
+
+    const leftEnabled =
+        document.getElementById("reminderLeftMessageEnabled");
+
+    const leftTime =
+        document.getElementById("reminderLeftMessageTime");
+
+    const leftFrequency =
+        document.getElementById("reminderLeftMessageFrequency");
+
+    const alarmEnabled =
+        document.getElementById("reminderAlarmEnabled");
+
+    if(country) country.value =
+        data.reminderPhoneCountry || "+51";
+
+    if(phone) phone.value =
+        data.reminderPhone || "960722146";
+
+    if(startDate) startDate.value =
+        data.reminderStartDate || "";
+
+    if(startTime) startTime.value =
+        data.reminderStartTime || "";
+
+    if(endDate) endDate.value =
+        data.reminderEndDate || "";
+
+    if(endTime) endTime.value =
+        data.reminderEndTime || "";
+
+    if(timezone) timezone.value =
+        data.reminderTimezone || "America/Lima";
+
+    if(message) message.value =
+        data.reminderMessage || "";
+
+    if(whatsappEnabled) whatsappEnabled.checked =
+        data.reminderWhatsappEnabled === "true";
+
+    if(whatsappMessage) whatsappMessage.value =
+        data.reminderWhatsappMessage || "";
+
+    if(leftEnabled) leftEnabled.checked =
+        data.reminderLeftMessageEnabled === "true";
+
+    if(leftTime) leftTime.value =
+        data.reminderLeftMessageTime || "";
+
+    if(leftFrequency) leftFrequency.value =
+        data.reminderLeftMessageFrequency || "1";
+
+    if(alarmEnabled) alarmEnabled.checked =
+        data.reminderAlarmEnabled === "true";
+
+    actualizarContadorRecordatorio();
+    actualizarCamposVisibilidadRecordatorio();
+}
+
+function actualizarCamposVisibilidadRecordatorio(){
+
+    const whatsappEnabled =
+        document.getElementById("reminderWhatsappEnabled")?.checked;
+
+    const whatsappFields =
+        document.querySelectorAll(".reminder-whatsapp-fields");
+
+    whatsappFields.forEach(field => {
+        field.style.opacity =
+            whatsappEnabled ? "1" : ".45";
+    });
+
+    const leftEnabled =
+        document.getElementById("reminderLeftMessageEnabled")?.checked;
+
+    const leftFields =
+        document.querySelectorAll(".reminder-left-message-fields");
+
+    leftFields.forEach(field => {
+        field.style.opacity =
+            leftEnabled ? "1" : ".45";
+    });
+}
+
+function validarCamposRecordatorio(){
+
+    const startDate =
+        document.getElementById("reminderStartDate")?.value || "";
+
+    const startTime =
+        document.getElementById("reminderStartTime")?.value || "";
+
+    const endDate =
+        document.getElementById("reminderEndDate")?.value || "";
+
+    const endTime =
+        document.getElementById("reminderEndTime")?.value || "";
+
+    const whatsappEnabled =
+        document.getElementById("reminderWhatsappEnabled")?.checked;
+
+    const phone =
+        document.getElementById("reminderPhone")?.value.trim() || "";
+
+    const whatsappMessage =
+        document.getElementById("reminderWhatsappMessage")?.value.trim() || "";
+
+    const leftEnabled =
+        document.getElementById("reminderLeftMessageEnabled")?.checked;
+
+    const leftTime =
+        document.getElementById("reminderLeftMessageTime")?.value || "";
+
+    const message =
+        document.getElementById("reminderMessage")?.value.trim() || "";
+
+    if(!startDate || !startTime || !endDate || !endTime){
+        mostrarNotificacionGuardado(
+            "Recordatorio incompleto",
+            "Debes llenar fecha y hora de inicio y fecha y hora final."
+        );
+        return false;
+    }
+
+    const inicio =
+        new Date(`${startDate}T${startTime}:00`);
+
+    const fin =
+        new Date(`${endDate}T${endTime}:00`);
+
+    if(
+        Number.isNaN(inicio.getTime()) ||
+        Number.isNaN(fin.getTime()) ||
+        fin <= inicio
+    ){
+        mostrarNotificacionGuardado(
+            "Fechas no válidas",
+            "La fecha y hora final debe ser posterior a la fecha y hora de inicio."
+        );
+        return false;
+    }
+
+    if(
+        whatsappEnabled &&
+        (!phone || !whatsappMessage)
+    ){
+        mostrarNotificacionGuardado(
+            "WhatsApp incompleto",
+            "Activa el aviso de WhatsApp solo cuando hayas indicado número y mensaje."
+        );
+        return false;
+    }
+
+    if(leftEnabled && !leftTime){
+        mostrarNotificacionGuardado(
+            "Aviso visual incompleto",
+            "Indica la hora en la que comenzará el aviso visual."
+        );
+        return false;
+    }
+
+    return true;
+}
+
+function guardarCamposRecordatorio(card, validar = true){
+
+    if(!card){
+        return false;
+    }
+
+    if(
+        validar &&
+        !validarCamposRecordatorio()
+    ){
+        return false;
+    }
+
+    inicializarPaisesRecordatorio();
+
+    const country =
+        document.getElementById("reminderPhoneCountry");
+
+    const phone =
+        document.getElementById("reminderPhone");
+
+    const startDate =
+        document.getElementById("reminderStartDate");
+
+    const startTime =
+        document.getElementById("reminderStartTime");
+
+    const endDate =
+        document.getElementById("reminderEndDate");
+
+    const endTime =
+        document.getElementById("reminderEndTime");
+
+    const timezone =
+        document.getElementById("reminderTimezone");
+
+    const message =
+        document.getElementById("reminderMessage");
+
+    const whatsappEnabled =
+        document.getElementById("reminderWhatsappEnabled");
+
+    const whatsappMessage =
+        document.getElementById("reminderWhatsappMessage");
+
+    const leftEnabled =
+        document.getElementById("reminderLeftMessageEnabled");
+
+    const leftTime =
+        document.getElementById("reminderLeftMessageTime");
+
+    const leftFrequency =
+        document.getElementById("reminderLeftMessageFrequency");
+
+    const alarmEnabled =
+        document.getElementById("reminderAlarmEnabled");
+
+    card.dataset.reminderPhoneCountry =
+        country?.value || "+51";
+
+    card.dataset.reminderPhone =
+        (phone?.value || "960722146")
+            .replace(/[^\d]/g,"")
+            .slice(0,15);
+
+    card.dataset.reminderStartDate =
+        startDate?.value || "";
+
+    card.dataset.reminderStartTime =
+        startTime?.value || "";
+
+    card.dataset.reminderEndDate =
+        endDate?.value || "";
+
+    card.dataset.reminderEndTime =
+        endTime?.value || "";
+
+    card.dataset.reminderTimezone =
+        timezone?.value || "America/Lima";
+
+    card.dataset.reminderMessage =
+        (message?.value || "").slice(0,1000);
+
+    card.dataset.reminderWhatsappEnabled =
+        whatsappEnabled?.checked ? "true" : "false";
+
+    card.dataset.reminderWhatsappMessage =
+        (whatsappMessage?.value || "").slice(0,1000);
+
+    card.dataset.reminderLeftMessageEnabled =
+        leftEnabled?.checked ? "true" : "false";
+
+    card.dataset.reminderLeftMessageTime =
+        leftTime?.value || "";
+
+    card.dataset.reminderLeftMessageFrequency =
+        leftFrequency?.value || "1";
+
+    card.dataset.reminderAlarmEnabled =
+        alarmEnabled?.checked ? "true" : "false";
+
+    const tieneFechasRecordatorio =
+        Boolean(
+            startDate?.value &&
+            startTime?.value &&
+            endDate?.value &&
+            endTime?.value
+        );
+
+    card.dataset.reminderEnabled =
+        tieneFechasRecordatorio ? "true" : "false";
+
+    return true;
+}
+
+function activarEditorRecordatorio(){
+
+    inicializarPaisesRecordatorio();
+
+    const message =
+        document.getElementById("reminderMessage");
+
+    const whatsappEnabled =
+        document.getElementById("reminderWhatsappEnabled");
+
+    const leftEnabled =
+        document.getElementById("reminderLeftMessageEnabled");
+
+    if(message && message.dataset.bound !== "true"){
+        message.dataset.bound = "true";
+        message.addEventListener(
+            "input",
+            actualizarContadorRecordatorio
+        );
+    }
+
+    [whatsappEnabled,leftEnabled].forEach(control => {
+
+        if(!control || control.dataset.bound === "true"){
+            return;
+        }
+
+        control.dataset.bound = "true";
+
+        control.addEventListener(
+            "change",
+            actualizarCamposVisibilidadRecordatorio
+        );
+    });
+
+    const endTime =
+        document.getElementById("reminderEndTime");
+
+    const leftTime =
+        document.getElementById("reminderLeftMessageTime");
+
+    if(
+        endTime &&
+        leftTime &&
+        endTime.dataset.messageSyncBound !== "true"
+    ){
+        endTime.dataset.messageSyncBound = "true";
+
+        endTime.addEventListener("change", () => {
+            if(endTime.value){
+                leftTime.value = endTime.value;
+            }
+        });
+    }
+
+    actualizarCamposVisibilidadRecordatorio();
+    actualizarContadorRecordatorio();
+}
+
+function obtenerNumeroWhatsAppRecordatorio(card){
+
+    const codigo = card?.dataset.reminderPhoneCountry || "";
+    const numero = (card?.dataset.reminderPhone || "").replace(/\D/g,"");
+
+    if(!codigo || !numero){
+        return "";
+    }
+
+    return codigo.replace("+","") + numero;
+}
+
+function obtenerInstanteZonaHoraria(fecha, hora, zona){
+
+    if(!fecha || !hora || !zona){
+        return NaN;
+    }
+
+    const partesFecha =
+        fecha.split("-").map(Number);
+
+    const partesHora =
+        hora.split(":").map(Number);
+
+    if(partesFecha.length !== 3 || partesHora.length < 2){
+        return NaN;
+    }
+
+    const [year,month,day] = partesFecha;
+    const [hours,minutes] = partesHora;
+
+    let utc =
+        Date.UTC(
+            year,
+            month - 1,
+            day,
+            hours,
+            minutes,
+            0
+        );
+
+    for(let i = 0; i < 2; i++){
+
+        const partes =
+            new Intl.DateTimeFormat(
+                "en-US",
+                {
+                    timeZone:zona,
+                    year:"numeric",
+                    month:"2-digit",
+                    day:"2-digit",
+                    hour:"2-digit",
+                    minute:"2-digit",
+                    second:"2-digit",
+                    hourCycle:"h23"
+                }
+            ).formatToParts(new Date(utc));
+
+        const valores = {};
+
+        partes.forEach(p => {
+            if(p.type !== "literal"){
+                valores[p.type] = Number(p.value);
+            }
+        });
+
+        const zonaComoUtc =
+            Date.UTC(
+                valores.year,
+                valores.month - 1,
+                valores.day,
+                valores.hour,
+                valores.minute,
+                valores.second
+            );
+
+        const offset =
+            zonaComoUtc - utc;
+
+        utc =
+            Date.UTC(
+                year,
+                month - 1,
+                day,
+                hours,
+                minutes,
+                0
+            ) - offset;
+    }
+
+    return utc;
+}
+
+function obtenerColorRecordatorio(progreso){
+
+    if(progreso < 20) return "#14532d";
+    if(progreso < 40) return "#22c55e";
+    if(progreso < 60) return "#eab308";
+    if(progreso < 80) return "#f97316";
+    return "#ef4444";
+}
+
+function obtenerHoraActualRecordatorio(){
+
+    /*
+        No se consulta ni se raspa Time.is automáticamente.
+        El navegador mantiene la hora actual y la zona seleccionada
+        se aplica mediante Intl.DateTimeFormat.
+    */
+    return Date.now();
+}
+
+function mostrarMensajeFinalRecordatorio(card){
+
+    if(
+        !card ||
+        card.dataset.reminderLeftMessageEnabled !== "true"
+    ){
+        return;
+    }
+
+    const endDate =
+        card.dataset.reminderEndDate || "";
+
+    const endTime =
+        card.dataset.reminderLeftMessageTime ||
+        card.dataset.reminderEndTime ||
+        "";
+
+    const frequency =
+        Math.max(
+            1,
+            Number(
+                card.dataset.reminderLeftMessageFrequency || 1
+            )
+        );
+
+    const timezone =
+        card.dataset.reminderTimezone || "America/Lima";
+
+    const ahora =
+        obtenerHoraActualRecordatorio();
+
+    const finalInstant =
+        obtenerInstanteZonaHoraria(
+            endDate,
+            card.dataset.reminderEndTime || endTime,
+            timezone
+        );
+
+    if(!Number.isFinite(finalInstant)){
+        return;
+    }
+
+    const partesAhora =
+        new Intl.DateTimeFormat(
+            "en-CA",
+            {
+                timeZone:timezone,
+                year:"numeric",
+                month:"2-digit",
+                day:"2-digit"
+            }
+        ).formatToParts(new Date(ahora));
+
+    const fechaActual =
+        Object.fromEntries(
+            partesAhora
+                .filter(p => p.type !== "literal")
+                .map(p => [p.type,p.value])
+        );
+
+    const fechaLocal =
+        `${fechaActual.year}-${fechaActual.month}-${fechaActual.day}`;
+
+    if(fechaLocal !== endDate){
+        return;
+    }
+
+    /*
+        El primer aviso se produce a la hora elegida.
+        Los siguientes se distribuyen durante el resto del día
+        según la cantidad seleccionada.
+    */
+    const horaBase =
+        endTime || card.dataset.reminderEndTime || "09:00";
+
+    const baseInstant =
+        obtenerInstanteZonaHoraria(
+            endDate,
+            horaBase,
+            timezone
+        );
+
+    const intervalo =
+        frequency > 1
+            ? Math.floor(
+                (86400000 - (baseInstant - obtenerInstanteZonaHoraria(
+                    endDate,
+                    "00:00",
+                    timezone
+                ))) / frequency
+            )
+            : 0;
+
+    let mostrar = false;
+
+    if(frequency === 1){
+        mostrar =
+            ahora >= baseInstant &&
+            ahora < baseInstant + 60000;
+    }else if(ahora >= baseInstant){
+        const diferencia =
+            ahora - baseInstant;
+
+        const indice =
+            Math.floor(diferencia / Math.max(intervalo,60000));
+
+        mostrar =
+            indice < frequency &&
+            diferencia % Math.max(intervalo,60000) < 60000;
+    }
+
+    if(!mostrar){
+        return;
+    }
+
+    const clave =
+        `${endDate}:${frequency}:${Math.floor((ahora-baseInstant)/60000)}`;
+
+    if(card.dataset.reminderLastToastKey === clave){
+        return;
+    }
+
+    card.dataset.reminderLastToastKey = clave;
+
+    const texto =
+        card.dataset.reminderMessage ||
+        "El recordatorio ha llegado a su fecha final.";
+
+    let toast =
+        document.querySelector(".reminder-final-toast");
+
+    if(toast){
+        toast.remove();
+    }
+
+    toast =
+        document.createElement("div");
+
+    toast.className =
+        "reminder-final-toast";
+
+    toast.innerHTML = `
+        <strong>
+            <i class="fa-solid fa-bell"></i>
+            Recordatorio
+        </strong>
+        <div>${escaparHTML(texto)}</div>
+    `;
+
+    document.body.appendChild(toast);
+
+    requestAnimationFrame(() => {
+        toast.classList.add("is-visible");
+    });
+
+    setTimeout(() => {
+        toast.classList.remove("is-visible");
+
+        setTimeout(() => {
+            toast.remove();
+        },350);
+
+    },3000);
+}
+
+/*====================================================
+    ALARMA DE FINALIZACIÓN DEL RECORDATORIO
+====================================================*/
+
+const recordatorioAlarmasActivas = new WeakMap();
+
+let recordatorioUsuarioInteractuo = false;
+
+if(!window.__jmReminderInteractionBound){
+    window.__jmReminderInteractionBound = true;
+
+    const marcarInteraccionRecordatorio = () => {
+        recordatorioUsuarioInteractuo = true;
+    };
+
+    window.addEventListener("pointerdown", marcarInteraccionRecordatorio, { passive:true });
+    window.addEventListener("keydown", marcarInteraccionRecordatorio, { passive:true });
+    window.addEventListener("touchstart", marcarInteraccionRecordatorio, { passive:true });
+}
+
+function crearAvisoAlarmaRecordatorio(card = null){
+
+    let aviso =
+        document.getElementById("reminderAlarmAlert");
+
+    if(aviso){
+        if(card){
+            aviso.dataset.cardKey = card.dataset.reminderAlarmKey || "";
+        }
+        return aviso;
+    }
+
+    aviso = document.createElement("button");
+    aviso.type = "button";
+    aviso.id = "reminderAlarmAlert";
+    aviso.className = "reminder-alarm-alert";
+    aviso.setAttribute("aria-label","Detener alarma");
+    aviso.innerHTML = `
+        <i class="fa-solid fa-bell"></i>
+        <span>Tiempo finalizado</span>
+    `;
+
+    aviso.addEventListener("click", () => {
+
+        const activa =
+            recordatorioAlarmasActivas.get(
+                window.__jmReminderAlarmCard || null
+            );
+
+        if(window.__jmReminderAlarmCard){
+            finalizarAlarmaRecordatorio(
+                window.__jmReminderAlarmCard
+            );
+        }else if(activa){
+            activa.detenido = true;
+            activa.audio.pause();
+            activa.audio.currentTime = 0;
+        }
+
+        aviso.classList.remove("is-active");
+    });
+
+    document.body.appendChild(aviso);
+
+    return aviso;
+}
+
+function detenerAvisoVisualAlarma(){
+
+    const aviso = document.getElementById("reminderAlarmAlert");
+
+    if(aviso){
+        aviso.classList.remove("is-active");
+    }
+}
+
+function iniciarAlarmaRecordatorio(card){
+
+    if(!card || card.dataset.reminderAlarmEnabled !== "true"){
+        return;
+    }
+
+    if(recordatorioAlarmasActivas.has(card)){
+        return;
+    }
+
+    const audio = new Audio("/sounds/Alarma.mp3");
+    audio.preload = "auto";
+    audio.loop = true;
+
+    const estado = {
+        audio,
+        intervalo: null,
+        apagado: null,
+        detenido: false
+    };
+
+    recordatorioAlarmasActivas.set(card, estado);
+
+
+    const vibrar = () => {
+        if(!recordatorioUsuarioInteractuo){
+            return;
+        }
+
+        if(
+            typeof navigator === "undefined" ||
+            typeof navigator.vibrate !== "function"
+        ){
+            return;
+        }
+
+        try{
+            navigator.vibrate([500,300,500,300,900]);
+        }catch(_){
+            // La vibración es opcional; la alarma continúa sin ella.
+        }
+    };
+
+    const sonar = () => {
+
+        if(estado.detenido) return;
+
+        window.__jmReminderAlarmCard = card;
+
+        const aviso = crearAvisoAlarmaRecordatorio(card);
+        aviso.classList.add("is-active");
+        vibrar();
+
+        audio.currentTime = 0;
+        audio.play().catch(error => {
+            console.warn("No se pudo reproducir la alarma:", error);
+        });
+
+        clearTimeout(estado.apagado);
+        estado.apagado = setTimeout(() => {
+            audio.pause();
+            audio.currentTime = 0;
+            detenerAvisoVisualAlarma();
+        }, 60000);
+    };
+
+    sonar();
+
+    estado.intervalo = setInterval(() => {
+        sonar();
+    }, 120000);
+}
+
+function finalizarAlarmaRecordatorio(card){
+
+    const estado = recordatorioAlarmasActivas.get(card);
+
+    if(!estado) return;
+
+    estado.detenido = true;
+    clearInterval(estado.intervalo);
+    clearTimeout(estado.apagado);
+    estado.audio.pause();
+    estado.audio.currentTime = 0;
+    recordatorioAlarmasActivas.delete(card);
+
+    if(window.__jmReminderAlarmCard === card){
+        window.__jmReminderAlarmCard = null;
+    }
+
+    detenerAvisoVisualAlarma();
+
+    if("vibrate" in navigator){
+        try{ navigator.vibrate(0); }catch(_){ }
+    }
+}
+
+function restaurarFechasRecordatorioFinalizado(card){
+
+    if(!card) return;
+
+    /*
+        Si WhatsApp está activado, conservamos una copia mínima del
+        momento final para que el servidor pueda enviar el aviso aunque
+        el navegador restaure las fechas inmediatamente.
+    */
+    if(card.dataset.reminderWhatsappEnabled === "true"){
+        card.dataset.reminderWhatsappPending = "true";
+        card.dataset.reminderPendingEndDate =
+            card.dataset.reminderEndDate || "";
+        card.dataset.reminderPendingEndTime =
+            card.dataset.reminderEndTime || "";
+        card.dataset.reminderPendingTimezone =
+            card.dataset.reminderTimezone || "America/Lima";
+    }else{
+        card.dataset.reminderWhatsappPending = "false";
+        card.dataset.reminderPendingEndDate = "";
+        card.dataset.reminderPendingEndTime = "";
+        card.dataset.reminderPendingTimezone = "";
+    }
+
+    card.dataset.reminderStartDate = "";
+    card.dataset.reminderStartTime = "";
+    card.dataset.reminderEndDate = "";
+    card.dataset.reminderEndTime = "";
+    card.dataset.reminderLeftMessageTime = "";
+    card.dataset.reminderEnabled = "false";
+    card.dataset.reminderLastSentKey = "";
+    card.dataset.reminderLastToastKey = "";
+    card.dataset.reminderRuntimeReady = "false";
+
+    const panel = card.querySelector(".reminder-user-panel");
+    panel?.remove();
+
+    card.classList.remove("reminder-active");
+
+    const bell = card.querySelector(".reminder-bell");
+    if(bell){
+        bell.style.display = "none";
+        bell.setAttribute("aria-hidden","true");
+    }
+
+    const icono = card.querySelector(".link-original-icon");
+    if(icono){
+        const iconoOriginal =
+            card.dataset.reminderOriginalIcon || icono.className;
+
+        icono.className = iconoOriginal;
+        icono.style.display = "";
+        icono.style.color = "";
+        icono.style.backgroundColor = "";
+        icono.style.borderRadius = "";
+        icono.style.padding = "";
+        icono.style.boxSizing = "";
+    }
+
+    /*
+        La alarma puede ejecutarse aunque la sesión de administrador
+        ya no esté activa. Intentamos persistir el estado, pero en modo
+        silencioso no mostramos el aviso de sesión al usuario.
+    */
+    guardarBotones({
+        silencioso: true
+    });
+}
+
+function actualizarRecordatorioUsuario(card){
+
+    if(!card || !card.classList.contains("reminder-active")){
+        return;
+    }
+
+    const start =
+        card.dataset.reminderStartDate || "";
+
+    const startTime =
+        card.dataset.reminderStartTime || "";
+
+    const end =
+        card.dataset.reminderEndDate || "";
+
+    const endTime =
+        card.dataset.reminderEndTime || "";
+
+    const timezone =
+        card.dataset.reminderTimezone || "America/Lima";
+
+    let panel =
+        card.querySelector(".reminder-user-panel");
+
+    if(!start || !startTime || !end || !endTime){
+        if(panel) panel.remove();
+        return;
+    }
+
+    if(!panel){
+
+        panel =
+            document.createElement("div");
+
+        panel.className =
+            "reminder-user-panel";
+
+        panel.innerHTML = `
+            <div class="reminder-user-row">
+                <span class="reminder-days"></span>
+                <span class="reminder-countdown"></span>
+            </div>
+            <div class="reminder-progress">
+                <div class="reminder-progress-bar"></div>
+            </div>
+        `;
+
+        const infoPanel =
+            card.querySelector(".social-info-panel");
+
+        if(infoPanel){
+            infoPanel.appendChild(panel);
+        }else{
+            card.querySelector(".link-main")
+                ?.appendChild(panel);
+        }
+    }
+
+    const inicio =
+        obtenerInstanteZonaHoraria(
+            start,
+            startTime,
+            timezone
+        );
+
+    const fin =
+        obtenerInstanteZonaHoraria(
+            end,
+            endTime,
+            timezone
+        );
+
+    if(
+        !Number.isFinite(inicio) ||
+        !Number.isFinite(fin) ||
+        fin <= inicio
+    ){
+        return;
+    }
+
+    const ahora =
+        obtenerHoraActualRecordatorio();
+
+    const total =
+        fin - inicio;
+
+    const restante =
+        Math.max(0, fin - ahora);
+
+    const transcurrido =
+        Math.min(
+            total,
+            Math.max(0, ahora - inicio)
+        );
+
+    const progreso =
+        Math.min(
+            100,
+            Math.max(
+                0,
+                (transcurrido / total) * 100
+            )
+        );
+
+    const dias =
+        Math.floor(
+            restante / 86400000
+        );
+
+    const horas =
+        Math.floor(
+            (restante % 86400000) / 3600000
+        );
+
+    const minutos =
+        Math.floor(
+            (restante % 3600000) / 60000
+        );
+
+    const segundos =
+        Math.floor(
+            (restante % 60000) / 1000
+        );
+
+    const daysEl =
+        panel.querySelector(".reminder-days");
+
+    const countdownEl =
+        panel.querySelector(".reminder-countdown");
+
+    const bar =
+        panel.querySelector(".reminder-progress-bar");
+
+    const bell =
+        card.querySelector(".reminder-bell");
+
+    const iconoPrincipal =
+        card.querySelector(".link-original-icon");
+
+    const color =
+        obtenerColorRecordatorio(progreso);
+
+    if(daysEl){
+
+        daysEl.textContent =
+            restante > 0
+                ? `${dias} día${dias === 1 ? "" : "s"}`
+                : "Finalizado";
+    }
+
+    if(countdownEl){
+
+        countdownEl.textContent =
+            restante > 0
+                ? `${String(horas).padStart(2,"0")}:${String(minutos).padStart(2,"0")}:${String(segundos).padStart(2,"0")}`
+                : "00:00:00";
+    }
+
+    if(bar){
+        /*
+            Con 0% el color no tiene superficie visible. Dejamos 1px
+            mínimo para que el usuario siempre pueda ver el estado.
+        */
+        bar.style.width =
+            `${progreso > 0 ? progreso : 0.8}%`;
+
+        bar.style.setProperty(
+            "background-color",
+            color,
+            "important"
+        );
+    }
+
+    if(bell){
+        /*
+            El CSS de la campana usa !important sobre la variable
+            --reminder-state-color. Actualizamos la variable en cada
+            tick para que fondo y barra cambien juntos, sin recargar.
+        */
+        bell.style.setProperty(
+            "--reminder-state-color",
+            color
+        );
+        bell.style.setProperty(
+            "background-color",
+            color,
+            "important"
+        );
+    }
+
+    if(iconoPrincipal){
+        iconoPrincipal.style.color = "";
+        iconoPrincipal.style.backgroundColor = "";
+        iconoPrincipal.style.borderRadius = "";
+        iconoPrincipal.style.padding = "";
+        iconoPrincipal.style.boxSizing = "";
+    }
+
+    mostrarMensajeFinalRecordatorio(card);
+
+    if(ahora >= fin){
+
+        /*
+            La primera restauración puede ocurrir durante la carga de la página.
+            En ese momento no se debe disparar la alarma automáticamente.
+            Una vez que el recordatorio ya está funcionando en tiempo real,
+            llegar a cero sí activa la alarma antes de limpiar las fechas.
+        */
+        if(card.dataset.reminderRuntimeReady === "true"){
+            iniciarAlarmaRecordatorio(card);
+        }
+
+        restaurarFechasRecordatorioFinalizado(card);
+        return;
+    }
+
+    card.dataset.reminderRuntimeReady = "true";
+}
+
+function activarRecordatoriosUsuario(){
+
+    document.querySelectorAll(".link-card").forEach(card => {
+
+        const icono =
+            card.querySelector(".link-original-icon");
+
+        if(!card.dataset.reminderBound){
+
+            card.dataset.reminderBound =
+                "true";
+
+            if(icono){
+
+                icono.addEventListener(
+                    "click",
+                    (e) => {
+
+                        if(
+                            !card.classList.contains(
+                                "reminder-active"
+                            )
+                        ){
+                            return;
+                        }
+
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        mostrarNotificacionGuardado(
+                            "Recordatorio",
+                            card.dataset.reminderMessage ||
+                            "Tienes un recordatorio pendiente."
+                        );
+                    }
+                );
+            }
+        }
+
+        const bell =
+            card.querySelector(".reminder-bell");
+
+            card.querySelector(".link-original-icon");
+
+        const tipo =
+            detectarTipoEnlace(
+                card.dataset.url || "",
+                icono?.className || ""
+            );
+
+        const tieneFechas =
+            !!card.dataset.reminderStartDate &&
+            !!card.dataset.reminderStartTime &&
+            !!card.dataset.reminderEndDate &&
+            !!card.dataset.reminderEndTime;
+
+        const esRecordatorio =
+            tipo === "recordatorio" &&
+            card.dataset.reminderEnabled === "true" &&
+            tieneFechas;
+
+        const esTipoRecordatorio =
+            tipo === "recordatorio";
+
+        if(esTipoRecordatorio && icono){
+
+            /*
+                Conservamos el icono original. El recordatorio activo
+                se representa exclusivamente con .reminder-bell-left.
+            */
+            if(!card.dataset.reminderOriginalIcon){
+                card.dataset.reminderOriginalIcon = icono.className;
+            }
+
+            icono.style.color = "";
+            icono.style.backgroundColor = "";
+            icono.style.borderRadius = "";
+            icono.style.padding = "";
+            icono.style.boxSizing = "";
+        }
+
+        if(esRecordatorio){
+
+            card.classList.add(
+                "reminder-active"
+            );
+
+            if(bell){
+                bell.style.display = "flex";
+                bell.setAttribute("aria-hidden", "false");
+            }
+
+            actualizarRecordatorioUsuario(card);
+
+        }else{
+
+            card.classList.remove(
+                "reminder-active"
+            );
+
+            if(bell){
+                bell.style.display = "none";
+                bell.setAttribute(
+                    "aria-hidden",
+                    "true"
+                );
+            }
+
+            const panel =
+                card.querySelector(
+                    ".reminder-user-panel"
+                );
+
+            if(panel){
+                panel.remove();
+            }
+        }
+    });
+}
+
+function iniciarActualizacionRecordatorios(){
+
+    if(window.jmReminderInterval){
+        clearInterval(window.jmReminderInterval);
+    }
+
+    activarRecordatoriosUsuario();
+
+    window.jmReminderInterval =
+        setInterval(() => {
+            activarRecordatoriosUsuario();
+        }, 1000);
+}
+
+function actualizarCamposSocialesEditor(){
+    const editor = document.getElementById("linkSocialEditor");
+
+    if(!editor){
+        return;
+    }
+
+    const tipo = detectarTipoEnlace(
+        document.getElementById("linkURL")?.value || "",
+        obtenerIconoActualEditor()
+    );
+
+    editor.classList.remove(
+        "social-type-whatsapp",
+        "social-type-social",
+        "social-type-youtube",
+        "social-type-curso",
+        "social-type-pdf",
+        "social-type-generic",
+        "social-type-recordatorio"
+    );
+
+    editor.classList.add(
+        `social-type-${tipo === "facebook" ||
+        tipo === "instagram" ||
+        tipo === "tiktok"
+            ? "social"
+            : tipo}`
+    );
+
+    const help = document.getElementById("linkSocialHelp");
+    const photoHelp = document.getElementById("linkSocialPhotoHelp");
+
+    if(help){
+        if(tipo === "whatsapp"){
+            help.textContent =
+                "Esta información aparecerá al pulsar la flecha ↑ del botón de WhatsApp.";
+        }else if(
+            tipo === "facebook" ||
+            tipo === "instagram" ||
+            tipo === "tiktok"
+        ){
+            help.textContent =
+                "Esta información aparecerá al pulsar la flecha ↑ del botón.";
+         }else if(tipo === "youtube"){
+            help.textContent =
+                "Puedes utilizar una fotografía subida manualmente para sustituir la miniatura de YouTube.";
+        }else if(tipo === "curso"){
+            help.textContent =
+                "El curso mostrará un panel informativo con su logo o imagen y la descripción que escribas.";
+        }else if(tipo === "recordatorio"){
+            help.textContent =
+                "Completa las fechas y horas de inicio y final. El panel mostrará días, horas y una barra que cambia de color hasta finalizar.";
+        }else if(tipo === "pdf"){
+            help.textContent =
+                "El PDF se mostrará con su primera página y debajo aparecerá únicamente la descripción.";
+        }else{
+            help.textContent = "";
+        }
+    }
+
+    if(photoHelp){
+        photoHelp.textContent =
+            "Selecciona una imagen desde tu computadora.";
+    }
+
+    const photoField =
+        document.getElementById("linkSocialPhotoField");
+
+    if(photoField){
+        photoField.querySelector("label[for='linkSocialPhoto']").textContent =
+            tipo === "youtube"
+                ? "Fotografía manual para miniatura de YouTube"
+                : tipo === "curso"
+                    ? "Logo / imagen del curso"
+                    : tipo === "recordatorio"
+                        ? "Logo / imagen del recordatorio"
+                        : "Foto / imagen";
+    }
+
+    if(editor){
+        editor.classList.toggle(
+            "social-type-youtube-manual-photo",
+            tipo === "youtube" || tipo === "curso"
+        );
+    }
+
+    const panelColors =
+        document.getElementById("socialPanelColors");
+
+    if(panelColors){
+        panelColors.style.display = "grid";
+    }
+
+    /*
+        Recordatorio: además de los campos generales,
+        muestra siempre su logo/imagen y los colores del panel.
+    */
+    const infoNameField = document.getElementById("linkInfoName");
+    const infoDescriptionField = document.getElementById("linkInfoDescription");
+    const infoCommonFields = editor.querySelectorAll(".social-field-info-common");
+
+    infoCommonFields.forEach(field => {
+        field.style.display = "block";
+    });
+
+    const photoFieldRecordatorio =
+        document.getElementById("linkSocialPhotoField");
+
+    if(photoFieldRecordatorio){
+        /*
+            La imagen forma parte de la información del usuario para
+            todas las redes sociales compatibles con este editor.
+            PDF y enlaces genéricos no utilizan este campo.
+        */
+        photoFieldRecordatorio.style.display =
+            !["pdf", "generic"].includes(tipo)
+                ? "block"
+                : "none";
+    }
+
+    if(infoNameField){
+        infoNameField.maxLength = 30;
+    }
+
+    if(infoDescriptionField){
+        infoDescriptionField.maxLength = 200;
+    }
+
+    if(tipo === "recordatorio"){
+        activarEditorRecordatorio();
+    }
+
+    if(tipo === "pdf" || tipo === "generic"){
+        limpiarFotoPendienteEditor();
+        actualizarVistaPreviaFotoEditor("");
+    }
+}
+
+function renderizarInformacionBoton(card){
+    if(!card) return;
+
+    const panel = card.querySelector(".social-info-panel");
+
+    if(!panel) return;
+
+    const url = card.dataset.url || "";
+
+    const tipo = detectarTipoEnlace(
+        url,
+        card.querySelector(".left i")?.className || ""
+    );
+
+    const nombre = card.dataset.socialName || "";
+    const usuario = card.dataset.socialUsername || "";
+    const telefono = card.dataset.socialPhone || "";
+    const foto = card.dataset.socialPhoto || "";
+    const siguiendo = card.dataset.socialFollowing || "";
+    const seguidores = card.dataset.socialFollowers || "";
+    const meGusta = card.dataset.socialLikes || "";
+    const descripcion = card.dataset.description || "";
+    const infoNombre =
+        card.dataset.infoName ||
+        card.dataset.socialName ||
+        "";
+    const infoDescripcion =
+        card.dataset.infoDescription ||
+        descripcion ||
+        "";
+    const youtubeDescription =
+        card.dataset.youtubeDescription || "";
+
+    const youtube = obtenerYouTubeThumbnail(url);
+
+    let contenido = "";
+
+    if(tipo === "recordatorio"){
+
+        contenido = `
+            <div class="social-info-inner reminder-info-inner">
+                ${
+                    foto
+                    ? `<div class="curso-logo-wrap reminder-logo-wrap">
+                           <img class="curso-logo" src="${escaparHTML(foto)}" alt="Logo del recordatorio">
+                       </div>`
+                    : ""
+                }
+
+                <strong class="social-info-name">
+                    ${escaparHTML(infoNombre || "Recordatorio")}
+                </strong>
+
+                ${
+                    infoDescripcion
+                    ? `<span class="social-info-description">${escaparHTML(infoDescripcion)}</span>`
+                    : ""
+                }
+
+                <div class="reminder-user-panel">
+                    <div class="reminder-user-row">
+                        <span class="reminder-days">Calculando...</span>
+                        <span class="reminder-countdown">00:00</span>
+                    </div>
+                    <div class="reminder-progress">
+                        <div class="reminder-progress-bar"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+    }else if(tipo === "youtube"){
+        // Si existe una foto subida manualmente, esta sustituye la miniatura de YouTube.
+        const thumb = foto || youtube;
+
+        contenido = `
+            <div class="social-info-inner youtube-info-inner">
+                ${
+                    thumb
+                    ? `
+                        <div class="youtube-thumbnail-wrap">
+                            <img
+                                class="youtube-thumbnail"
+                                src="${escaparHTML(thumb)}"
+                                alt="Miniatura de YouTube">
+                            <span class="youtube-play">
+                                <i class="fab fa-youtube"></i>
+                            </span>
+                        </div>
+                    `
+                    : `
+                        <div class="youtube-thumbnail-wrap">
+                            <div class="social-placeholder">
+                                <i class="fab fa-youtube"></i>
+                            </div>
+                        </div>
+                    `
+                }
+
+                ${
+                    youtubeDescription
+                    ? `<span class="social-info-description">${escaparHTML(youtubeDescription)}</span>`
+                    : ""
+                }
+            </div>
+        `;
+
+    }else if(tipo === "curso"){
+
+        const logoCurso = foto || "";
+
+        contenido = `
+            <div class="social-info-inner curso-info-inner">
+                ${
+                    logoCurso
+                    ? `<div class="curso-logo-wrap" title="Toca la imagen para ampliarla">
+                           <img class="curso-logo" src="${escaparHTML(logoCurso)}" alt="Logo del curso">
+                       </div>`
+                    : `<div class="social-info-avatar social-placeholder curso-placeholder">
+                           <i class="fa-solid fa-graduation-cap"></i>
+                       </div>`
+                }
+
+                <div class="curso-info-content">
+                    <strong class="social-info-name">
+                        ${escaparHTML(infoNombre || "Curso")}
+                    </strong>
+
+                    ${
+                        infoDescripcion
+                        ? `<span class="social-info-description">${escaparHTML(infoDescripcion)}</span>`
+                        : ""
+                    }
+                </div>
+            </div>
+        `;
+
+    }else if(tipo === "pdf"){
+
+        contenido = `
+            <div class="social-info-inner pdf-info-inner">
+                <div class="pdf-preview-wrap">
+                    <iframe
+                        class="pdf-preview"
+                        src="${escaparHTML(url)}#page=1&toolbar=0&navpanes=0&scrollbar=0"
+                        title="Primera página del PDF">
+                    </iframe>
+                </div>
+
+                ${
+                    descripcion
+                    ? `<span class="social-info-description">${escaparHTML(descripcion)}</span>`
+                    : ""
+                }
+            </div>
+        `;
+
+    }else if(tipo === "whatsapp"){
+
+        contenido = `
+            <div class="social-info-inner whatsapp-info-inner">
+                ${
+                    foto
+                    ? `
+                        <img
+                            class="social-info-avatar"
+                            src="${escaparHTML(foto)}"
+                            alt="Foto de WhatsApp">
+                    `
+                    : `
+                        <div class="social-info-avatar social-placeholder">
+                            <i class="fab fa-whatsapp"></i>
+                        </div>
+                    `
+                }
+
+                <strong class="social-info-name">
+                    ${escaparHTML(nombre || "WhatsApp")}
+                </strong>
+
+                <span class="social-info-user">
+                    ${escaparHTML(telefono || "Número no registrado")}
+                </span>
+
+                <span class="social-info-url">
+                    <i class="fab fa-whatsapp"></i>
+                    WhatsApp
+                </span>
+            </div>
+        `;
+
+    }else if(
+        ["facebook","instagram","tiktok"].includes(tipo)
+    ){
+
+        const icon =
+            tipo === "facebook"
+                ? "fab fa-facebook-f"
+                : tipo === "instagram"
+                    ? "fab fa-instagram"
+                    : "fab fa-tiktok";
+
+        const avatar = foto
+            ? `
+                <img
+                    class="social-info-avatar"
+                    src="${escaparHTML(foto)}"
+                    alt="Foto de perfil">
+            `
+            : `
+                <div class="social-info-avatar social-placeholder">
+                    <i class="${icon}"></i>
+                </div>
+            `;
+
+        contenido = `
+            <div class="social-info-inner">
+                ${avatar}
+
+                <strong class="social-info-name">
+                    ${escaparHTML(nombre || "Sin nombre")}
+                </strong>
+
+                ${
+                    usuario
+                    ? `<span class="social-info-user">${escaparHTML(usuario)}</span>`
+                    : ""
+                }
+
+                <div class="social-info-stats">
+                    <div>
+                        <i class="fa-solid fa-user-group"></i>
+                        <strong>${escaparHTML(siguiendo || "—")}</strong>
+                        <span>Siguiendo</span>
+                    </div>
+
+                    <div>
+                        <i class="fa-solid fa-users"></i>
+                        <strong>${escaparHTML(seguidores || "—")}</strong>
+                        <span>Seguidores</span>
+                    </div>
+
+                    <div>
+                        <i class="fa-solid fa-heart"></i>
+                        <strong>${escaparHTML(meGusta || "—")}</strong>
+                        <span>Me gusta</span>
+                    </div>
+                </div>
+            </div>
+        `;
+
+    }else{
+
+        contenido = `
+            <div class="social-info-inner generic-info-inner">
+                <strong class="social-info-name">
+                    ${escaparHTML(infoNombre || "Información")}
+                </strong>
+
+                ${
+                    infoDescripcion
+                    ? `<span class="social-info-description">${escaparHTML(infoDescripcion)}</span>`
+                    : `<span class="social-info-description">No hay información adicional.</span>`
+                }
+            </div>
+        `;
+    }
+
+    panel.innerHTML = contenido;
+
+    /*====================================================
+        AMPLIAR TODAS LAS MINIATURAS DEL PANEL
+    ====================================================*/
+
+    panel.querySelectorAll(
+        ".curso-logo, .youtube-thumbnail, .social-info-avatar"
+    ).forEach(miniatura => {
+
+        miniatura.style.cursor = "pointer";
+
+        miniatura.onclick = (e) => {
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            abrirMiniaturaAmpliada(miniatura);
+
+        };
+
+    });
+
+}
+
+function actualizarContadorDescripcionYouTube(){
+
+    const input =
+        document.getElementById("linkYoutubeDescription");
+
+    const contador =
+        document.getElementById("youtubeDescriptionCounter");
+
+    if(!input || !contador){
+        return;
+    }
+
+    input.value =
+        input.value.slice(0,100);
+
+    contador.textContent =
+        `${input.value.length} / 100`;
+}
+
+function actualizarContadoresInformacionEditor(){
+
+    const nombre = document.getElementById("linkInfoName");
+    const descripcion = document.getElementById("linkInfoDescription");
+    const nombreCounter = document.getElementById("linkInfoNameCounter");
+    const descripcionCounter = document.getElementById("linkInfoDescriptionCounter");
+
+    if(nombre){
+        nombre.value = nombre.value.slice(0,30);
+        if(nombreCounter){
+            nombreCounter.textContent = `${nombre.value.length} / 30`;
+        }
+    }
+
+    if(descripcion){
+        descripcion.value = descripcion.value.slice(0,200);
+        if(descripcionCounter){
+            descripcionCounter.textContent = `${descripcion.value.length} / 200`;
+        }
+    }
+}
+
+function limitarCamposInformacionEditor(){
+    actualizarContadoresInformacionEditor();
+}
+function cargarCamposSocialesEditor(card){
+
+    const fotoActual =
+        card?.dataset.socialPhoto || "";
+
+    actualizarVistaPreviaFotoEditor(
+        fotoActual
+    );
+
+
+
+    const infoName =
+        document.getElementById("linkInfoName");
+    const infoDescription =
+        document.getElementById("linkInfoDescription");
+
+    if(infoName){
+        infoName.value =
+            (
+                card.dataset.infoName ||
+                card.dataset.socialName ||
+                ""
+            ).slice(0,30);
+    }
+
+    if(infoDescription){
+        infoDescription.value =
+            (
+                card.dataset.infoDescription ||
+                card.dataset.description ||
+                ""
+            ).slice(0,200);
+    }
+
+    const map = {
+        linkSocialName: "socialName",
+        linkSocialUsername: "socialUsername",
+        linkSocialPhone: "socialPhone",
+        linkSocialFollowing: "socialFollowing",
+        linkSocialFollowers: "socialFollowers",
+        linkSocialLikes: "socialLikes"
+    };
+
+    Object.entries(map).forEach(([id, data]) => {
+        const el = document.getElementById(id);
+
+        if(el){
+            el.value =
+                card.dataset[data] || "";
+        }
+    });
+
+    limpiarFotoPendienteEditor();
+
+    actualizarVistaPreviaFotoEditor(
+        card.dataset.socialPhoto || ""
+    );
+
+    const youtubeDescription =
+        document.getElementById("linkYoutubeDescription");
+
+    if(youtubeDescription){
+        youtubeDescription.value =
+            card.dataset.youtubeDescription || "";
+        actualizarContadorDescripcionYouTube();
+    }
+
+    const panelColor =
+        document.getElementById("linkPanelColor");
+
+    const panelTextColor =
+        document.getElementById("linkPanelTextColor");
+
+    const infoPanelBackground =
+        document.getElementById("linkInfoPanelBackground");
+
+    if(panelColor){
+        const valor =
+            card.dataset.socialPanelColor ||
+            "#202020";
+
+        panelColor.dataset.colorFinal = valor;
+        panelColor.value =
+            rgbObjetoAHex(
+                obtenerRGBDesdeColor(valor)
+            );
+    }
+
+    if(panelTextColor){
+        const valor =
+            card.dataset.socialPanelTextColor ||
+            "#ffffff";
+
+        panelTextColor.dataset.colorFinal = valor;
+        panelTextColor.value =
+            rgbObjetoAHex(
+                obtenerRGBDesdeColor(valor)
+            );
+    }
+
+    if(infoPanelBackground){
+        const valor =
+            card.dataset.socialInfoPanelBackground ||
+            "rgba(32,32,32,.82)";
+
+        infoPanelBackground.dataset.colorFinal = valor;
+        infoPanelBackground.value =
+            rgbObjetoAHex(
+                obtenerRGBDesdeColor(valor)
+            );
+    }
+
+    cargarCamposRecordatorio(card);
+    actualizarContadoresInformacionEditor();
+
+    actualizarCamposSocialesEditor();
+}
+
+function guardarCamposSocialesEditor(card){
+
+    const tipoActual =
+        detectarTipoEnlace(
+            document.getElementById("linkURL")?.value || "",
+            obtenerIconoActualEditor()
+        );
+
+    if(
+        tipoActual === "recordatorio" &&
+        !validarCamposRecordatorio()
+    ){
+        return false;
+    }
+
+    const infoName =
+        document.getElementById("linkInfoName");
+    const infoDescription =
+        document.getElementById("linkInfoDescription");
+
+    if(infoName){
+        card.dataset.infoName =
+            infoName.value.trim().slice(0,30);
+    }
+
+    if(infoDescription){
+        card.dataset.infoDescription =
+            infoDescription.value.trim().slice(0,200);
+    }
+
+    const map = {
+        linkSocialName: "socialName",
+        linkSocialUsername: "socialUsername",
+        linkSocialPhone: "socialPhone",
+        linkSocialFollowing: "socialFollowing",
+        linkSocialFollowers: "socialFollowers",
+        linkSocialLikes: "socialLikes"
+    };
+
+    Object.entries(map).forEach(([id, data]) => {
+
+        const el =
+            document.getElementById(id);
+
+        if(el){
+            card.dataset[data] =
+                el.value.trim();
+        }
+
+    });
+
+    const youtubeDescription =
+        document.getElementById("linkYoutubeDescription");
+
+    if(youtubeDescription){
+        card.dataset.youtubeDescription =
+            youtubeDescription.value.trim().slice(0,100);
+    }
+
+    const panelColor =
+        document.getElementById("linkPanelColor");
+
+    const panelTextColor =
+        document.getElementById("linkPanelTextColor");
+
+    const infoPanelBackground =
+        document.getElementById("linkInfoPanelBackground");
+
+    card.dataset.socialPanelColor =
+        panelColor?.dataset.colorFinal ||
+        panelColor?.value ||
+        card.dataset.socialPanelColor ||
+        "#202020";
+
+    card.dataset.socialPanelTextColor =
+        panelTextColor?.value ||
+        card.dataset.socialPanelTextColor ||
+        "#ffffff";
+
+    card.dataset.socialInfoPanelBackground =
+        infoPanelBackground?.dataset.colorFinal ||
+        infoPanelBackground?.value ||
+        card.dataset.socialInfoPanelBackground ||
+        "rgba(32,32,32,.82)";
+
+    aplicarColoresPanelInformacion(card);
+
+    if(tipoActual === "recordatorio") {
+        guardarCamposRecordatorio(card, false);
+    }
+
+    return true;
+}
+
+async function subirFotoSocialEditor(){
+
+    if(!socialPhotoPendingFile || !botonSeleccionado){
+        return null;
+    }
+
+    const datos = new FormData();
+
+    datos.append(
+        "socialImage",
+        socialPhotoPendingFile
+    );
+
+    if(botonSeleccionado?.dataset.socialPhoto){
+        datos.append(
+            "previousSocialImage",
+            botonSeleccionado.dataset.socialPhoto
+        );
+    }
+
+    const respuesta = await fetch(
+        "/uploadSocialImage",
+        {
+            method:"POST",
+            body:datos
+        }
+    );
+
+    const resultado =
+        await respuesta.json();
+
+    if(!respuesta.ok || !resultado.ok){
+        throw new Error(
+            resultado.error ||
+            "No se pudo subir la imagen."
+        );
+    }
+
+    socialPhotoPendingFile = null;
+
+    const input =
+        document.getElementById("linkSocialPhoto");
+
+    if(input){
+        input.value = "";
+    }
+
+    return resultado.socialPhoto;
+}
+
+function activarEditorFotoSocial(){
+
+    const input =
+        document.getElementById("linkSocialPhoto");
+
+    if(!input || input.dataset.bound === "true"){
+        return;
+    }
+
+    input.dataset.bound = "true";
+
+    input.addEventListener("change", () => {
+
+        const archivo =
+            input.files?.[0];
+
+        if(!archivo){
+            return;
+        }
+
+        if(!archivo.type.startsWith("image/")){
+            input.value = "";
+
+            mostrarNotificacionGuardado(
+                "Archivo no válido",
+                "Selecciona una imagen."
+            );
+
+            return;
+        }
+
+        if(archivo.size > 5 * 1024 * 1024){
+            input.value = "";
+
+            mostrarNotificacionGuardado(
+                "Imagen demasiado grande",
+                "El tamaño máximo permitido es 5 MB."
+            );
+
+            return;
+        }
+
+        socialPhotoPendingFile =
+            archivo;
+
+        const lector =
+            new FileReader();
+
+        lector.onload = () => {
+            actualizarVistaPreviaFotoEditor(
+                lector.result
+            );
+        };
+
+        lector.readAsDataURL(archivo);
+    });
+}
+
+function aplicarColoresPanelInformacion(card){
+
+    if(!card){
+        return;
+    }
+
+    const fondo =
+        card.dataset.socialPanelColor ||
+        "#202020";
+
+    const texto =
+        card.dataset.socialPanelTextColor ||
+        "#ffffff";
+
+    /*
+        socialPanelColor corresponde EXCLUSIVAMENTE al fondo de los
+        tres cuadros: Siguiendo, Seguidores y Me gusta.
+
+        El fondo general del panel informativo es independiente.
+        Se fuerza a su valor base para evitar que un color guardado
+        anteriormente vuelva a pintar todo el panel.
+    */
+    card.style.setProperty(
+        "--social-stats-bg",
+        fondo
+    );
+
+    const fondoPanelInformacion =
+        card.dataset.socialInfoPanelBackground ||
+        "rgba(32,32,32,.82)";
+
+    card.style.setProperty(
+        "--social-panel-bg",
+        fondoPanelInformacion
+    );
+
+    card.style.setProperty(
+        "--social-panel-text",
+        texto
+    );
+}
+
+function activarCamposDinamicosEditor(){
+
+    const infoName =
+        document.getElementById("linkInfoName");
+
+    const infoDescription =
+        document.getElementById("linkInfoDescription");
+
+    if(infoName && infoName.dataset.limitBound !== "true"){
+        infoName.dataset.limitBound = "true";
+        infoName.maxLength = 30;
+        infoName.addEventListener(
+            "input",
+            limitarCamposInformacionEditor
+        );
+    }
+
+    if(infoDescription && infoDescription.dataset.limitBound !== "true"){
+        infoDescription.dataset.limitBound = "true";
+        infoDescription.maxLength = 200;
+        infoDescription.addEventListener(
+            "input",
+            limitarCamposInformacionEditor
+        );
+    }
+
+    limitarCamposInformacionEditor();
+
+    const linkIcon =
+        document.getElementById("linkIcon");
+
+    const linkURL =
+        document.getElementById("linkURL");
+
+    if(linkIcon){
+        linkIcon.addEventListener(
+            "change",
+            actualizarCamposSocialesEditor
+        );
+    }
+
+    if(linkURL){
+        linkURL.addEventListener(
+            "input",
+            actualizarCamposSocialesEditor
+        );
+    }
+
+    activarEditorFotoSocial();
+    activarEditorRecordatorio();
+    activarColoresPanelEditor();
+
+    const youtubeDescription =
+        document.getElementById("linkYoutubeDescription");
+
+    if(
+        youtubeDescription &&
+        youtubeDescription.dataset.bound !== "true"
+    ){
+        youtubeDescription.dataset.bound = "true";
+        youtubeDescription.addEventListener(
+            "input",
+            actualizarContadorDescripcionYouTube
+        );
+    }
+
+    actualizarCamposSocialesEditor();
+}
+
+function activarColoresPanelEditor(){
+
+    const fondo =
+        document.getElementById("linkPanelColor");
+
+    const fondoBtn =
+        document.getElementById("linkPanelColorSelector");
+
+    const fondoPanelInformacion =
+        document.getElementById("linkInfoPanelBackground");
+
+    const fondoPanelInformacionBtn =
+        document.getElementById("linkInfoPanelBackgroundSelector");
+
+    const texto =
+        document.getElementById("linkPanelTextColor");
+
+    const vincular = (boton, input, propiedad) => {
+
+        if(!boton || !input || boton.dataset.universalColorBound === "true"){
+            return;
+        }
+
+        boton.dataset.universalColorBound = "true";
+
+        actualizarSelectorUniversalColor(
+            boton,
+            input
+        );
+
+        boton.addEventListener("click", e => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            abrirEditorColor({
+                picker: input,
+                despuesDeAplicar: (valor) => {
+
+                    input.dataset.colorFinal = valor;
+
+                    actualizarSelectorUniversalColor(
+                        boton,
+                        input,
+                        valor
+                    );
+
+                    if(!botonSeleccionado){
+                        return;
+                    }
+
+                    botonSeleccionado.dataset[propiedad] = valor;
+                    aplicarColoresPanelInformacion(botonSeleccionado);
+
+                    if(botonSeleccionado.classList.contains("social-info-open")){
+                        renderizarInformacionBoton(botonSeleccionado);
+                        ajustarEspacioPanelInformacion(botonSeleccionado);
+                    }
+                }
+            });
+        });
+    };
+
+    vincular(
+        fondoBtn,
+        fondo,
+        "socialPanelColor"
+    );
+
+    vincular(
+        fondoPanelInformacionBtn,
+        fondoPanelInformacion,
+        "socialInfoPanelBackground"
+    );
+
+    if(texto){
+        const campo =
+            texto.closest(".social-panel-color-field") || texto.parentElement;
+
+        if(
+            campo &&
+            campo.dataset.universalColorBound !== "true"
+        ){
+            campo.dataset.universalColorBound = "true";
+
+            campo.addEventListener("pointerdown", e => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                abrirEditorColor({
+                    picker: texto,
+                    despuesDeAplicar: (valor) => {
+
+                        texto.dataset.colorFinal = valor;
+
+                        if(!botonSeleccionado){
+                            return;
+                        }
+
+                        botonSeleccionado.dataset.socialPanelTextColor = valor;
+                        aplicarColoresPanelInformacion(botonSeleccionado);
+
+                        if(botonSeleccionado.classList.contains("social-info-open")){
+                            renderizarInformacionBoton(botonSeleccionado);
+                            ajustarEspacioPanelInformacion(botonSeleccionado);
+                        }
+                    }
+                });
+            }, true);
+
+            campo.addEventListener("click", e => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, true);
+        }
+    }
+}
+
+
+/*====================================================
+    AJUSTAR ESPACIO DEL PANEL INFORMATIVO
+====================================================*/
+
+function ajustarEspacioPanelInformacion(card){
+
+    const links =
+        document.getElementById("linksContainer");
+
+    if(!links || !card){
+        return;
+    }
+
+    const limpiarEspacio = () => {
+        links.querySelectorAll(".link-card").forEach(tarjeta => {
+            tarjeta.style.removeProperty("--social-panel-space");
+
+            if(tarjeta._socialPanelResizeObserver){
+                tarjeta._socialPanelResizeObserver.disconnect();
+                tarjeta._socialPanelResizeObserver = null;
+            }
+        });
+    };
+
+    const medirYAplicar = () => {
+
+        const abierta =
+            links.querySelector(".link-card.social-info-open");
+
+        if(!abierta){
+            limpiarEspacio();
+            return;
+        }
+
+        const panel =
+            abierta.querySelector(".social-info-panel");
+
+        if(!panel){
+            limpiarEspacio();
+            return;
+        }
+
+        /*
+            El panel se dibuja por encima de la card mediante CSS.
+            Para que nunca tape la card anterior ni la descripción,
+            reservamos en el flujo exactamente su altura más dos
+            pequeños espacios: uno arriba y otro junto a la card.
+        */
+        const alturaPanel =
+            Math.ceil(panel.getBoundingClientRect().height);
+
+        const gap =
+            parseFloat(
+                getComputedStyle(links)
+                    .getPropertyValue("--social-info-gap")
+            ) || 6;
+
+        /*
+            El espacio incluye dos separaciones: una entre la card
+            anterior y el panel, y otra entre el panel y la card abierta.
+        */
+        const espacio =
+            alturaPanel + (gap * 2);
+
+        abierta.style.setProperty(
+            "--social-panel-space",
+            `${espacio}px`
+        );
+
+        /*
+            Si una imagen termina de cargar o cambia el tamaño del
+            contenido, volvemos a calcular sin crear otro sistema de
+            desplazamiento.
+        */
+        if(typeof ResizeObserver !== "undefined" && !abierta._socialPanelResizeObserver){
+            abierta._socialPanelResizeObserver =
+                new ResizeObserver(() => {
+                    if(abierta.classList.contains("social-info-open")){
+                        const nuevaAltura =
+                            Math.ceil(panel.getBoundingClientRect().height);
+
+                        const nuevoEspacio =
+                            nuevaAltura + (gap * 2);
+
+                        abierta.style.setProperty(
+                            "--social-panel-space",
+                            `${nuevoEspacio}px`
+                        );
+                    }
+                });
+
+            abierta._socialPanelResizeObserver.observe(panel);
+        }
+    };
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(medirYAplicar);
+    });
+
+    setTimeout(medirYAplicar, 120);
+    setTimeout(medirYAplicar, 350);
+}
+
+function activarBotonesInfoUsuario(){
+
+    document.querySelectorAll(
+        ".user-info-toggle"
+    ).forEach(btn => {
+
+        if(btn.dataset.infoBound === "true"){
+            return;
+        }
+
+        btn.dataset.infoBound = "true";
+
+        btn.onclick = (e) => {
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            const card =
+                btn.closest(".link-card");
+
+            if(!card){
+                return;
+            }
+
+            const abierto =
+                card.classList.toggle(
+                    "social-info-open"
+                );
+
+            const icono =
+                btn.querySelector("i");
+
+            if(icono){
+
+                icono.className =
+                    abierto
+                    ? "fa-solid fa-chevron-up"
+                    : "fa-solid fa-chevron-down";
+
+            }
+
+            if(abierto){
+                renderizarInformacionBoton(card);
+
+                ajustarEspacioPanelInformacion(card);
+
+                if(card._infoAutoHideTimer){
+                    clearTimeout(
+                        card._infoAutoHideTimer
+                    );
+                }
+
+                card._infoAutoHideTimer =
+                    setTimeout(() => {
+
+                        if(!card.classList.contains(
+                            "social-info-open"
+                        )){
+                            return;
+                        }
+
+                        card.classList.remove(
+                            "social-info-open"
+                        );
+
+                        ajustarEspacioPanelInformacion(card);
+
+                        if(icono){
+                            icono.className =
+                                "fa-solid fa-chevron-down";
+                        }
+
+                    }, 4000);
+
+            }else{
+
+                ajustarEspacioPanelInformacion(card);
+
+                if(card._infoAutoHideTimer){
+                    clearTimeout(
+                        card._infoAutoHideTimer
+                    );
+
+                    card._infoAutoHideTimer = null;
+                }
+
+            }
+
+        };
+
+    });
+
+}
+
+/*====================================================
+            ABRIR MODAL DESDE LOS TRES PUNTOS
+    ====================================================*/
+
+    function activarBotones(){
+
+        document.querySelectorAll(".options").forEach(btn => {
+
+        btn.onmousedown = (e) => {
+
+                e.stopPropagation();
+
+                botonSeleccionado =
+                    btn.closest(".link-card");
+
+                const texto =
+                    botonSeleccionado.querySelector(".center span");
+
+                const icono =
+                    botonSeleccionado.querySelector(".left i");
+
+                const descripcion =
+                    botonSeleccionado.querySelector(".center small");
+
+                /* TEXTO */
+
+                document.getElementById("linkTitle").value =
+                    texto.innerText;
+
+                /* URL */
+
+                document.getElementById("linkURL").value =
+                    botonSeleccionado.dataset.url || "";
+
+                /* ICONO */
+
+                const tipoBotonEditor =
+                    detectarTipoEnlace(
+                        botonSeleccionado.dataset.url || "",
+                        icono.className
+                    );
+
+                document.getElementById("linkIcon").value =
+                    tipoBotonEditor === "recordatorio"
+                        ? "fa-solid fa-bell"
+                        : normalizarIconoEditor(icono.className, tipoBotonEditor);
+
+                /* COLOR DE TEXTO */
+
+                /* COLOR DE TEXTO */
+
+    const colorTexto =
+    botonSeleccionado.dataset.textColor || "#ffffff";
+
+
+
+/* Guardar el color real */
+
+linkTextColor.dataset.colorFinal =
+    colorTexto;
+
+/* El input solo recibe HEX */
+
+linkTextColor.value =
+    rgbObjetoAHex(
+        obtenerRGBDesdeColor(
+            colorTexto
+        )
+    );
+
+
+
+                /* DESCRIPCIÓN */
+
+                document.getElementById("linkDescription").value =
+                    botonSeleccionado.dataset.description || "";
+
+                    actualizarContadorDescripcionBoton();
+
+                /* NUEVA PESTAÑA */
+
+                document.getElementById("linkNewTab").checked =
+                    botonSeleccionado.dataset.newTab === "true";
+
+                cargarCamposSocialesEditor(
+                    botonSeleccionado
+                );
+
+                /*
+                    Guardamos únicamente las fechas que tenía el botón
+                    al abrir el editor. Si el usuario no las modifica,
+                    los demás campos del Recordatorio pueden guardarse
+                    sin volver a exigir fechas.
+                */
+                botonSeleccionado._recordatorioFechasIniciales = {
+                    startDate: botonSeleccionado.dataset.reminderStartDate || "",
+                    startTime: botonSeleccionado.dataset.reminderStartTime || "",
+                    endDate: botonSeleccionado.dataset.reminderEndDate || "",
+                    endTime: botonSeleccionado.dataset.reminderEndTime || ""
+                };
+
+       
+
+
+
+                /* ABRIR MODAL */
+
+cerrarTodosLosModales();
+
+document.getElementById("linkModal")
+    .style.display = "flex";
+
+   guardarEstadoModal(
+    document.getElementById("linkModal")
+);
+
+            };
+
+        });
+
+    }
+
+
+
+
+    /*====================================================
+            GUARDAR CAMBIOS DEL BOTÓN
+    ====================================================*/
+
+    document.getElementById("saveLink").onclick = async () => {
+        if(!botonSeleccionado) return;
+
+
+        const texto =
+            document.getElementById("linkTitle")
+            .value
+            .trim();
+
+
+        const url =
+            document.getElementById("linkURL")
+            .value
+            .trim();
+
+
+        const icono =
+            document.getElementById("linkIcon")
+            .value;
+
+
+   let colorTexto =
+    linkTextColor.dataset.colorFinal ||
+    linkTextColor.value;
+
+    /*=========================================
+        SI EL EDITOR UNIVERSAL ESTÁ ACTIVO
+    =========================================*/
+
+
+
+
+        const descripcion =
+            document.getElementById("linkDescription")
+            .value
+            .trim();
+
+
+        const nuevaPestana =
+            document.getElementById("linkNewTab")
+            .checked;
+
+        /*=========================================
+            SUBIR FOTO / MINIATURA
+        =========================================*/
+
+        const tipoEnlace =
+            detectarTipoEnlace(
+                url,
+                icono
+            );
+
+        if(
+            socialPhotoPendingFile &&
+            !["pdf", "generic"].includes(tipoEnlace)
+        ){
+            try{
+
+                const nuevaFoto =
+                    await subirFotoSocialEditor();
+
+                if(nuevaFoto){
+                    botonSeleccionado.dataset.socialPhoto =
+                        nuevaFoto;
+
+                    /* Actualizar inmediatamente la miniatura/panel sin recargar. */
+                    actualizarVistaPreviaFotoEditor(nuevaFoto);
+                }
+
+            }catch(error){
+
+                console.error(
+                    "Error subiendo foto del botón:",
+                    error
+                );
+
+                mostrarNotificacionGuardado(
+                    "No se pudo subir la imagen",
+                    error.message
+                );
+
+                return;
+            }
+        }
+
+
+        /* ACTUALIZAR TEXTO */
+
+  botonSeleccionado
+    .querySelector(".center span")
+    .innerText = texto;
+
+botonSeleccionado.dataset.buttonText =
+    texto;
+
+        /* ACTUALIZAR ICONO */
+
+        const iconoPrincipalEditor =
+            botonSeleccionado.querySelector(".link-original-icon");
+
+        if(iconoPrincipalEditor){
+            const claseIcono = String(icono || "")
+                .replace(/\blink-original-icon\b/g, "")
+                .trim();
+
+            iconoPrincipalEditor.className =
+                `link-original-icon ${claseIcono}`.trim();
+
+            if(tipoEnlace === "recordatorio"){
+                botonSeleccionado.dataset.reminderOriginalIcon =
+                    iconoPrincipalEditor.className;
+            }
+        }
+
+
+        /* ACTUALIZAR URL */
+
+        botonSeleccionado.dataset.url = url;
+
+
+        /* ACTUALIZAR COLOR DE LA LETRA */
+
+
+    const span = botonSeleccionado.querySelector(".center span");
+
+    span.style.color = colorTexto;
+
+    const small =
+    botonSeleccionado.querySelector(".center small");
+
+    if(small){
+
+        small.style.color = colorTexto;
+
+    }
+
+    botonSeleccionado.dataset.textColor = colorTexto;
+        
+
+
+        /* ACTUALIZAR DESCRIPCIÓN */
+
+        let descripcionElemento =
+            botonSeleccionado.querySelector(".center small");
+
+            botonSeleccionado.dataset.description = descripcion;
+
+
+        if(descripcion !== ""){
+
+            if(!descripcionElemento){
+
+                descripcionElemento =
+                    document.createElement("small");
+
+                botonSeleccionado
+                    .querySelector(".center")
+                    .appendChild(descripcionElemento);
+
+            }
+
+            descripcionElemento.innerText =
+                descripcion;
+
+        }else{
+
+
+                botonSeleccionado.dataset.description = "";
+
+
+            if(descripcionElemento){
+
+                descripcionElemento.remove();
+
+            }
+
+        }
+
+
+        /* ABRIR EN NUEVA PESTAÑA */
+
+        botonSeleccionado.dataset.newTab =
+            nuevaPestana;
+
+        /*=========================================
+            GUARDAR INFORMACIÓN DEL EDITOR
+            guardarCamposSocialesEditor() centraliza también el
+            guardado/validación del Recordatorio para evitar guardar
+            dos veces los mismos campos.
+        =========================================*/
+
+        const camposSocialesValidos =
+            guardarCamposSocialesEditor(
+                botonSeleccionado
+            );
+
+        if(camposSocialesValidos === false){
+            return;
+        }
+
+        const finRecordatorio =
+            tipoEnlace === "recordatorio"
+                ? obtenerInstanteZonaHoraria(
+                    botonSeleccionado.dataset.reminderEndDate || "",
+                    botonSeleccionado.dataset.reminderEndTime || "",
+                    botonSeleccionado.dataset.reminderTimezone || "America/Lima"
+                )
+                : NaN;
+
+        const recordatorioCompleto =
+            tipoEnlace === "recordatorio" &&
+            Boolean(
+                botonSeleccionado.dataset.reminderStartDate &&
+                botonSeleccionado.dataset.reminderStartTime &&
+                botonSeleccionado.dataset.reminderEndDate &&
+                botonSeleccionado.dataset.reminderEndTime
+            ) &&
+            Number.isFinite(finRecordatorio) &&
+            finRecordatorio > Date.now();
+
+        botonSeleccionado.dataset.reminderEnabled =
+            recordatorioCompleto
+                ? "true"
+                : "false";
+
+const iconoBotonGuardado =
+    botonSeleccionado.querySelector(".link-original-icon");
+
+let campanaGuardada =
+    botonSeleccionado.querySelector(".reminder-bell-left");
+
+if(recordatorioCompleto){
+
+    botonSeleccionado.classList.add("reminder-active");
+
+    if(iconoBotonGuardado){
+        if(!botonSeleccionado.dataset.reminderOriginalIcon){
+            botonSeleccionado.dataset.reminderOriginalIcon =
+                iconoBotonGuardado.className;
+        }
+
+        iconoBotonGuardado.style.display = "none";
+    }
+
+    /*
+        Garantiza la misma estructura para botones antiguos y nuevos.
+        No se crea una campana como <i> principal: siempre va dentro
+        de .reminder-bell-left.
+    */
+    if(!campanaGuardada){
+        const left =
+            botonSeleccionado.querySelector(".left");
+
+        if(left){
+            campanaGuardada =
+                document.createElement("button");
+
+            campanaGuardada.type = "button";
+            campanaGuardada.className =
+                "reminder-bell reminder-bell-left";
+            campanaGuardada.setAttribute(
+                "aria-label",
+                "Mostrar recordatorio"
+            );
+            campanaGuardada.innerHTML =
+                '<i class="fa-solid fa-bell"></i>';
+
+            left.appendChild(campanaGuardada);
+        }
+    }
+
+if(campanaGuardada){
+
+    campanaGuardada.style.display = "flex";
+
+    campanaGuardada.setAttribute(
+        "aria-hidden",
+        "false"
+    );
+
+    const colorIcono =
+        botonSeleccionado.dataset.iconColor ||
+        botonSeleccionado.dataset.linkIconColor ||
+        getComputedStyle(iconoBotonGuardado || botonSeleccionado)
+            .getPropertyValue("--link-icon-color")
+            .trim() ||
+        "#ffffff";
+
+    campanaGuardada.style.setProperty(
+        "color",
+        colorIcono,
+        "important"
+    );
+
+    const iconoCampana =
+        campanaGuardada.querySelector("i");
+
+    if(iconoCampana){
+        iconoCampana.style.setProperty(
+            "color",
+            colorIcono,
+            "important"
+        );
+    }
+}
+
+    actualizarRecordatorioUsuario(botonSeleccionado);
+
+}else{
+
+    botonSeleccionado.classList.remove("reminder-active");
+
+    if(campanaGuardada){
+        campanaGuardada.style.display = "none";
+        campanaGuardada.setAttribute(
+            "aria-hidden",
+            "true"
+        );
+    }
+
+    if(iconoBotonGuardado){
+        iconoBotonGuardado.style.display = "";
+    }
+}
+
+        aplicarColoresPanelInformacion(
+            botonSeleccionado
+        );
+
+        renderizarInformacionBoton(
+            botonSeleccionado
+        );
+
+
+ /*=========================================
+        GUARDAR BOTONES
+=========================================*/
+
+await guardarBotones();
+
+/* Aplicar inmediatamente los cambios del recordatorio sin recargar. */
+activarRecordatoriosUsuario();
+
+
+/*=========================================
+        NOTIFICACIÓN
+=========================================*/
+
+mostrarNotificacionGuardado(
+    "Cambios guardados",
+    "El botón se guardó correctamente."
+);
+
+
+/*=========================================
+        CERRAR MODAL
+=========================================*/
+
+cerrarModalDefinitivamente(
+    document.getElementById("linkModal")
+);
+
+
+    };
+
+
+
+
+/*====================================================
+ELIMINAR BOTÓN
+====================================================*/
+
+document.getElementById(
+    "deleteLink"
+).onclick = () => {
+
+    if(!botonSeleccionado){
+        return;
+    }
+
+    const botonAEliminar =
+        botonSeleccionado;
+
+    mostrarAdvertenciaCambios(
+        async () => {
+
+            try{
+
+                if(botonAEliminar._infoAutoHideTimer){
+                    clearTimeout(
+                        botonAEliminar._infoAutoHideTimer
+                    );
+                    botonAEliminar._infoAutoHideTimer = null;
+                }
+
+                botonAEliminar.classList.remove(
+                    "social-info-open"
+                );
+
+                botonAEliminar.remove();
+
+                botonSeleccionado = null;
+                modalActivo = null;
+                estadoInicialModal = null;
+
+                const linkModal =
+                    document.getElementById("linkModal");
+
+                if(linkModal){
+                    linkModal.style.display = "none";
+                }
+
+                cerrarTodosLosModales();
+
+                await guardarBotones();
+
+                mostrarNotificacionGuardado(
+                    "Botón eliminado",
+                    "El botón fue eliminado correctamente."
+                );
+
+            }catch(error){
+
+                console.error(
+                    "Error eliminando botón:",
+                    error
+                );
+
+                mostrarNotificacionGuardado(
+                    "Error al eliminar",
+                    "No se pudo guardar la eliminación."
+                );
+
+            }
+
+        },
+        {
+            titulo:
+                "¿Deseas eliminar este botón?",
+
+            mensaje:
+                "Esta acción eliminará el botón seleccionado.",
+
+            detalle:
+                "El botón se quitará y el cambio se guardará inmediatamente.",
+
+            textoConfirmar:
+                "Eliminar botón"
+
+        }
+    );
+
+};
+
+
+/*====================================================
+            DUPLICAR BOTÓN
+====================================================*/
+
+document.getElementById("duplicateLink").onclick = () => {
+
+    if(!botonSeleccionado) return;
+
+
+    const texto =
+        botonSeleccionado
+        .querySelector(".center span")
+        .innerText;
+
+
+    const icono =
+        botonSeleccionado
+        .querySelector(".left i")
+        .className;
+
+
+    const url =
+        botonSeleccionado.dataset.url || "";
+
+
+    const colorTexto =
+        botonSeleccionado.dataset.textColor ||
+        "#ffffff";
+
+
+    const descripcion =
+        botonSeleccionado.dataset.description ||
+        "";
+
+
+    const nuevaPestana =
+        botonSeleccionado.dataset.newTab === "true";
+
+    const socialData = {
+        socialName: botonSeleccionado.dataset.socialName || "",
+        infoName: botonSeleccionado.dataset.infoName || "",
+        infoDescription: botonSeleccionado.dataset.infoDescription || "",
+        socialUsername: botonSeleccionado.dataset.socialUsername || "",
+        socialPhone: botonSeleccionado.dataset.socialPhone || "",
+        socialPhoto: botonSeleccionado.dataset.socialPhoto || "",
+        socialFollowing: botonSeleccionado.dataset.socialFollowing || "",
+        socialFollowers: botonSeleccionado.dataset.socialFollowers || "",
+        socialLikes: botonSeleccionado.dataset.socialLikes || "",
+        youtubeDescription:
+            botonSeleccionado.dataset.youtubeDescription || "",
+        socialPanelColor:
+            botonSeleccionado.dataset.socialPanelColor || "#202020",
+        socialPanelTextColor:
+            botonSeleccionado.dataset.socialPanelTextColor || "#ffffff",
+        socialInfoPanelBackground:
+            botonSeleccionado.dataset.socialInfoPanelBackground || "rgba(32,32,32,.82)",
+
+        reminderEnabled:
+            botonSeleccionado.dataset.reminderEnabled === "true",
+
+        reminderPhoneCountry:
+            botonSeleccionado.dataset.reminderPhoneCountry || "+51",
+
+        reminderPhone:
+            botonSeleccionado.dataset.reminderPhone || "",
+
+        reminderStartDate:
+            botonSeleccionado.dataset.reminderStartDate || "",
+
+        reminderStartTime:
+            botonSeleccionado.dataset.reminderStartTime || "",
+
+        reminderEndDate:
+            botonSeleccionado.dataset.reminderEndDate || "",
+
+        reminderEndTime:
+            botonSeleccionado.dataset.reminderEndTime || "",
+
+        reminderTimezone:
+            botonSeleccionado.dataset.reminderTimezone || "America/Lima",
+
+        reminderMessage:
+            botonSeleccionado.dataset.reminderMessage || "",
+
+        reminderWhatsappEnabled:
+            botonSeleccionado.dataset.reminderWhatsappEnabled === "true",
+
+        reminderWhatsappMessage:
+            botonSeleccionado.dataset.reminderWhatsappMessage || "",
+
+        reminderLeftMessageEnabled:
+            botonSeleccionado.dataset.reminderLeftMessageEnabled === "true",
+
+        reminderLeftMessageTime:
+            botonSeleccionado.dataset.reminderLeftMessageTime || "",
+
+        reminderLeftMessageFrequency:
+            botonSeleccionado.dataset.reminderLeftMessageFrequency || "1",
+
+        reminderLastSentKey:
+            botonSeleccionado.dataset.reminderLastSentKey || "",
+
+        reminderWhatsappPending:
+            botonSeleccionado.dataset.reminderWhatsappPending === "true",
+
+        reminderPendingEndDate:
+            botonSeleccionado.dataset.reminderPendingEndDate || "",
+
+        reminderPendingEndTime:
+            botonSeleccionado.dataset.reminderPendingEndTime || "",
+
+        reminderPendingTimezone:
+            botonSeleccionado.dataset.reminderPendingTimezone || "America/Lima"
+    };
+
+
+    agregarBoton(
+
+        texto + " - Copia",
+
+        icono,
+
+        url,
+
+        colorTexto,
+
+        descripcion,
+
+        nuevaPestana,
+
+        socialData
+
+    );
+
+    
+    guardarBotones();
+
+    // Activar eventos únicamente para el nuevo botón
+activarBotones();
+
+activarLinks();
+
+activarDragDrop();
+
+activarBotonesInfoUsuario();
+
+};
+
+
+/*====================================================
+            ABRIR ENLACES
+====================================================*/
+
+function activarLinks(){
+
+    document
+        .querySelectorAll(".link-card")
+        .forEach(card => {
+
+
+        card.onclick = (e) => {
+
+
+            if(
+                e.target.closest(".options") ||
+                e.target.closest(".user-info-toggle") ||
+                e.target.closest(".social-info-panel")
+            )
+                return;
+
+
+            const url =
+                card.dataset.url;
+
+
+            if(!url)
+
+                return;
+
+
+            const nuevaPestana =
+                card.dataset.newTab === "true";
+
+
+            if(nuevaPestana){
+
+                window.open(
+                    url,
+                    "_blank",
+                    "noopener,noreferrer"
+                );
+
+            }else{
+
+                window.location.href =
+                    url;
+
+            }
+
+        };
+
+    });
+
+}
+
+
+
+
+/*====================================================
+            AGREGAR BOTÓN
+====================================================*/
+
+function agregarBoton(
+
+    texto = "Nuevo botón",
+
+    icono = "fa-solid fa-link",
+
+    url = "",
+
+    colorTexto = "#fffefe",
+
+    descripcion = "",
+
+    nuevaPestana = false,
+
+    socialData = {}
+
+){
+
+    const contenedor =
+        document.getElementById("linksContainer");
+
+
+    const iconoNormalizado =
+        normalizarIconoEditor(
+            icono,
+            detectarTipoEnlace(url, icono)
+        );
+
+
+    const div =
+        document.createElement("div");
+
+
+    div.className =
+        "link-card";
+
+
+    div.dataset.url =
+        url;
+
+
+    div.dataset.textColor =
+        colorTexto;
+
+
+    div.dataset.description =
+        descripcion;
+
+        div.dataset.buttonText =
+    texto;
+
+
+    div.dataset.newTab =
+        nuevaPestana;
+
+    div.dataset.socialName =
+        socialData.socialName || "";
+    div.dataset.infoName =
+        socialData.infoName ||
+        "";
+    div.dataset.infoDescription =
+        socialData.infoDescription ||
+        descripcion ||
+        "";
+    div.dataset.socialUsername =
+        socialData.socialUsername || "";
+    div.dataset.socialPhone =
+        socialData.socialPhone || "";
+    div.dataset.socialPhoto =
+        socialData.socialPhoto || "";
+    div.dataset.socialFollowing =
+        socialData.socialFollowing || "";
+    div.dataset.socialFollowers =
+        socialData.socialFollowers || "";
+    div.dataset.socialLikes =
+        socialData.socialLikes || "";
+
+    div.dataset.youtubeDescription =
+        socialData.youtubeDescription || "";
+
+    div.dataset.socialPanelColor =
+        socialData.socialPanelColor ||
+        "#202020";
+
+    div.dataset.socialPanelTextColor =
+        socialData.socialPanelTextColor ||
+        "#ffffff";
+    div.dataset.socialInfoPanelBackground =
+        socialData.socialInfoPanelBackground ||
+        "rgba(32,32,32,.82)";
+
+    div.dataset.reminderEnabled =
+        socialData.reminderEnabled === true ||
+        socialData.reminderEnabled === "true"
+            ? "true"
+            : "false";
+
+    div.dataset.reminderPhoneCountry =
+        socialData.reminderPhoneCountry || "+51";
+    div.dataset.reminderPhone =
+        socialData.reminderPhone || "";
+    div.dataset.reminderStartDate =
+        socialData.reminderStartDate || "";
+    div.dataset.reminderStartTime =
+        socialData.reminderStartTime || "";
+    div.dataset.reminderEndDate =
+        socialData.reminderEndDate || "";
+    div.dataset.reminderEndTime =
+        socialData.reminderEndTime || "";
+    div.dataset.reminderTimezone =
+        socialData.reminderTimezone || "America/Lima";
+    div.dataset.reminderMessage =
+        socialData.reminderMessage || "";
+    div.dataset.reminderWhatsappEnabled =
+        socialData.reminderWhatsappEnabled === true ||
+        socialData.reminderWhatsappEnabled === "true"
+            ? "true"
+            : "false";
+    div.dataset.reminderWhatsappMessage =
+        socialData.reminderWhatsappMessage || "";
+    div.dataset.reminderLeftMessageEnabled =
+        socialData.reminderLeftMessageEnabled === true ||
+        socialData.reminderLeftMessageEnabled === "true"
+            ? "true"
+            : "false";
+    div.dataset.reminderLeftMessageTime =
+        socialData.reminderLeftMessageTime || "";
+    div.dataset.reminderLeftMessageFrequency =
+        socialData.reminderLeftMessageFrequency || "1";
+
+    div.dataset.reminderAlarmEnabled =
+        socialData.reminderAlarmEnabled === true ||
+        socialData.reminderAlarmEnabled === "true";
+
+    div.dataset.reminderLastSentKey =
+        socialData.reminderLastSentKey || "";
+
+    div.dataset.reminderWhatsappPending =
+        socialData.reminderWhatsappPending === true ||
+        socialData.reminderWhatsappPending === "true"
+            ? "true"
+            : "false";
+
+    div.dataset.reminderPendingEndDate =
+        socialData.reminderPendingEndDate || "";
+
+    div.dataset.reminderPendingEndTime =
+        socialData.reminderPendingEndTime || "";
+
+    div.dataset.reminderPendingTimezone =
+        socialData.reminderPendingTimezone ||
+        "America/Lima";
+
+    aplicarColoresPanelInformacion(div);
+
+
+    div.innerHTML = `
+
+        <div class="link-main">
+
+            <div class="left">
+                <i class="link-original-icon ${iconoNormalizado}"></i>
+                <button class="reminder-bell reminder-bell-left" type="button" aria-label="Mostrar recordatorio">
+                    <i class="fa-solid fa-bell"></i>
+                </button>
+            </div>
+
+            <div class="center">
+                <span style="color:${colorTexto};">
+                    ${escaparHTML(texto)}
+                </span>
+
+                ${
+                    descripcion
+                    ? `<small style="color:${colorTexto};">${escaparHTML(descripcion)}</small>`
+                    : ""
+                }
+            </div>
+
+            <div class="link-actions">
+                <button class="options admin-only" type="button" aria-label="Editar botón">
+                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+
+                <button class="user-info-toggle" type="button" aria-label="Mostrar información">
+                    <i class="fa-solid fa-chevron-down"></i>
+                </button>
+
+            </div>
+
+        </div>
+
+        <div class="social-info-panel"></div>
+
+    `;
+
+
+ 
+
+    /*
+        La campanita pertenece exclusivamente al botón Recordatorio.
+        Los demás botones no muestran este control.
+    */
+    const tipoBotonCreado = detectarTipoEnlace(url, icono);
+    const campanaRecordatorio = div.querySelector(".reminder-bell");
+
+    if(campanaRecordatorio){
+        const recordatorioActivo =
+            tipoBotonCreado === "recordatorio" &&
+            div.dataset.reminderEnabled === "true" &&
+            !!div.dataset.reminderEndDate;
+
+        campanaRecordatorio.style.display =
+            recordatorioActivo ? "flex" : "none";
+
+        div.classList.toggle(
+            "reminder-active",
+            recordatorioActivo
+        );
+    }
+
+contenedor.appendChild(div);
+
+const infoToggleNuevo =
+    div.querySelector(".user-info-toggle");
+
+if(infoToggleNuevo){
+    infoToggleNuevo.style.display =
+        administradorActivo
+            ? "none"
+            : "flex";
+}
+
+const radioBoton =
+    Number(configuracion.radius ?? 50);
+
+div.style.setProperty(
+    "--button-radius",
+    radioBoton + "px"
+);
+
+const mainVisual =
+    div.querySelector(".link-main");
+
+if(mainVisual){
+    mainVisual.style.setProperty(
+        "border-radius",
+        radioBoton + "px",
+        "important"
+    );
+}
+
+div.style.fontFamily =
+configuracion.font ||
+"'Segoe UI',sans-serif";
+
+aplicarColoresPanelInformacion(div);
+
+// Mantener ocultos los controles si no es administrador
+
+}
+
+
+
+/*====================================================
+    IDENTIFICADOR DEL DISPOSITIVO
+====================================================*/
+
+function obtenerDeviceId() {
+
+    let deviceId =
+        localStorage.getItem(
+            "jmDeveloperDeviceId"
+        );
+
+
+    if (!deviceId) {
+
+        deviceId =
+            crypto.randomUUID();
+
+
+        localStorage.setItem(
+            "jmDeveloperDeviceId",
+            deviceId
+        );
+
+    }
+
+
+    return deviceId;
+}
+
+
+
+
+
+
+
+/*====================================================
+    ESTADÍSTICAS DE LA TARJETA
+====================================================*/
+
+const cardStats =
+    document.getElementById("cardStats");
+
+const cardViewsCounter =
+    document.getElementById("cardViewsCounter");
+
+const cardLikesCounter =
+    document.getElementById("cardLikesCounter");
+
+const cardLikeButton =
+    document.getElementById("cardLikeButton");
+
+const cardViewsIcon =
+    document.getElementById("cardViewsIcon");
+
+
+
+
+    const cardShareButton =
+    document.getElementById("cardShareButton");
+
+const cardSharesCounter =
+    document.getElementById("cardSharesCounter");
+
+const cardStatsAdminButton =
+    document.getElementById("cardStatsAdminButton");
+
+const cardStatsModal =
+    document.getElementById("cardStatsModal");
+
+
+
+
+/*====================================================
+    REGISTRAR VISUALIZACIÓN
+====================================================*/
+
+async function cargarVisualizaciones() {
+
+    if (!cardViewsCounter) return;
+
+
+    try {
+
+        const deviceId =
+            obtenerDeviceId();
+
+
+        const respuesta =
+            await fetch(
+                "/stats/view",
+                {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+                            deviceId
+                        })
+
+                }
+            );
+
+
+        if (!respuesta.ok) {
+
+            throw new Error(
+                `HTTP ${respuesta.status}`
+            );
+
+        }
+
+
+        const datos =
+            await respuesta.json();
+
+
+        if (
+            typeof datos.views === "number"
+        ) {
+
+            cardViewsCounter.textContent =
+                datos.views;
+
+        }
+
+
+        /*
+            Solo animamos cuando esta
+            visita realmente fue registrada.
+        */
+
+        if (datos.registrada) {
+
+            animarOjo();
+
+        }
+
+
+    } catch (error) {
+
+        console.error(
+            "Error registrando visualización:",
+            error
+        );
+
+    }
+
+}
+
+/*====================================================
+    ANIMACIÓN DEL OJO
+====================================================*/
+
+function animarOjo() {
+
+    if (!cardViewsIcon) return;
+
+    cardViewsIcon.classList.remove(
+        "card-eye-animation"
+    );
+
+    void cardViewsIcon.offsetWidth;
+
+    cardViewsIcon.classList.add(
+        "card-eye-animation"
+    );
+
+}
+
+
+cargarVisualizaciones();
+cargarEstadoLike();
+cargarEstadoShare();
+actualizarColorIconosCardStats();
+
+
+/*====================================================
+    CARGAR ESTADO DE COMPARTIDOS
+====================================================*/
+
+async function cargarEstadoShare() {
+
+    if (!cardShareButton) {
+        return;
+    }
+
+
+    try {
+
+        const deviceId =
+            obtenerDeviceId();
+
+
+        const respuesta =
+            await fetch(
+                `/stats/share?deviceId=${encodeURIComponent(deviceId)}`,
+                {
+                    cache: "no-store"
+                }
+            );
+
+
+        if (!respuesta.ok) {
+
+            throw new Error(
+                `HTTP ${respuesta.status}`
+            );
+
+        }
+
+
+        const datos =
+            await respuesta.json();
+
+
+        if (
+            typeof datos.shares === "number"
+        ) {
+
+            cardSharesCounter.textContent =
+                datos.shares;
+
+        }
+
+
+    } catch (error) {
+
+        console.error(
+            "Error cargando compartidos:",
+            error
+        );
+
+    }
+
+}
+
+
+
+/*====================================================
+    CARGAR ESTADO DE LIKE
+====================================================*/
+
+async function cargarEstadoLike() {
+
+    if (!cardLikeButton) return;
+
+
+    try {
+
+        const deviceId =
+            obtenerDeviceId();
+
+
+        const respuesta =
+            await fetch(
+                `/stats/like?deviceId=${encodeURIComponent(deviceId)}`,
+                {
+                    cache: "no-store"
+                }
+            );
+
+
+        if (!respuesta.ok) {
+
+            throw new Error(
+                `HTTP ${respuesta.status}`
+            );
+
+        }
+
+
+        const datos =
+            await respuesta.json();
+
+
+        if (
+            typeof datos.likes === "number"
+        ) {
+
+            cardLikesCounter.textContent =
+                datos.likes;
+
+        }
+
+
+        /*=========================================
+            SOLO ACTUALIZAR ESTADO VISUAL
+        =========================================*/
+
+        if (datos.liked) {
+
+            cardLikeButton.classList.add(
+                "liked"
+            );
+
+        } else {
+
+            cardLikeButton.classList.remove(
+                "liked"
+            );
+
+        }
+
+
+    } catch (error) {
+
+        console.error(
+            "Error cargando Like:",
+            error
+        );
+
+    }
+
+}
+
+
+/*====================================================
+    SONIDO LIKE
+====================================================*/
+
+const sonidoLike = new Audio(
+    "/sounds/like.mp3"
+);
+
+
+function reproducirSonidoLike(){
+
+    sonidoLike.currentTime = 0;
+
+    sonidoLike.volume = 0.7;
+
+    sonidoLike.play().catch(
+        error => {
+
+            console.warn(
+                "No se pudo reproducir el sonido Like:",
+                error
+            );
+
+        }
+    );
+
+}
+
+
+
+
+
+
+
+
+
+/*====================================================
+    TOGGLE LIKE
+====================================================*/
+
+async function cambiarLike() {
+
+    if (!cardLikeButton) return;
+
+
+    /*
+        Evitar doble clic mientras
+        esperamos al servidor.
+    */
+
+    if (
+        cardLikeButton.dataset.procesando === "true"
+    ) {
+
+        return;
+
+    }
+
+
+    cardLikeButton.dataset.procesando =
+        "true";
+
+
+    try {
+
+        const deviceId =
+            obtenerDeviceId();
+
+
+        const respuesta =
+            await fetch(
+                "/stats/like",
+                {
+
+                    method: "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json"
+
+                    },
+
+                    body:
+                        JSON.stringify({
+                            deviceId
+                        })
+
+                }
+            );
+
+
+        if (!respuesta.ok) {
+
+            throw new Error(
+                `HTTP ${respuesta.status}`
+            );
+
+        }
+
+
+ const datos =
+    await respuesta.json();
+
+
+if (
+    typeof datos.likes === "number"
+) {
+
+    cardLikesCounter.textContent =
+        datos.likes;
+
+}
+
+
+/*=========================================
+    ESTADO VISUAL
+=========================================*/
+
+if (datos.liked) {
+
+    cardLikeButton.classList.add(
+        "liked"
+    );
+
+
+      /*=====================================
+        SONIDO LIKE
+    =====================================*/
+
+    reproducirSonidoLike();
+
+
+
+    /*=====================================
+        ANIMACIÓN
+    =====================================*/
+
+    animarPulgares();
+
+} else {
+
+    cardLikeButton.classList.remove(
+        "liked"
+    );
+
+}
+
+
+    } catch (error) {
+
+        console.error(
+            "Error cambiando Like:",
+            error
+        );
+
+    } finally {
+
+        cardLikeButton.dataset.procesando =
+            "false";
+
+    }
+
+}
+
+if (cardLikeButton) {
+
+    cardLikeButton.addEventListener(
+        "click",
+        cambiarLike
+    );
+
+}
+
+if (cardShareButton) {
+
+    cardShareButton.addEventListener(
+        "click",
+        compartirPagina
+    );
+
+}
+
+
+
+
+
+
+/*====================================================
+    ANIMACIÓN DE APLAUSOS
+====================================================*/
+
+function animarAplausos() {
+
+    const cantidad = 18;
+
+
+    for (
+        let i = 0;
+        i < cantidad;
+        i++
+    ) {
+
+        const aplauso =
+            document.createElement(
+                "div"
+            );
+
+
+        aplauso.className =
+            "share-float";
+
+/*
+        aplauso.innerHTML =
+            "👏🏼"; */
+
+            aplauso.innerHTML = `
+    <span class="clap-bubble">
+        <i class="fa-solid fa-hands-clapping"></i>
+    </span>
+`;
+
+
+        aplauso.style.left =
+            (
+                Math.random() * 100
+            ) + "%";
+
+
+        aplauso.style.fontSize =
+            (
+                18 +
+                Math.random() * 22
+            ) + "px";
+
+
+        aplauso.style.animationDuration =
+            (
+                1.8 +
+                Math.random() * 1.7
+            ) + "s";
+
+
+        aplauso.style.animationDelay =
+            (
+                Math.random() * 0.5
+            ) + "s";
+
+
+        document.body.appendChild(
+            aplauso
+        );
+
+
+        setTimeout(() => {
+
+            aplauso.remove();
+
+        }, 4000);
+
+    }
+
+}
+
+/*====================================================
+    COMPARTIR URL
+====================================================*/
+
+async function compartirPagina() {
+
+    if (!cardShareButton) {
+        return;
+    }
+
+
+    if (
+        cardShareButton.dataset.procesando === "true"
+    ) {
+
+        return;
+
+    }
+
+
+    cardShareButton.dataset.procesando =
+        "true";
+
+
+    try {
+
+        const url =
+            window.location.href;
+
+
+        const shareData = {
+
+            title:
+                document.title,
+
+            text:
+                "Mira este perfil:",
+
+            url:
+                url
+
+        };
+
+
+        /*
+            NAVEGADOR CON WEB SHARE
+        */
+
+        if (
+            navigator.share &&
+            (
+                !navigator.canShare ||
+                navigator.canShare(shareData)
+            )
+        ) {
+
+            await navigator.share(
+                shareData
+            );
+
+
+            await registrarCompartido();
+
+            activarEstadoCompartido();
+            animarAplausos();
+
+
+            return;
+
+        }
+
+
+        /*
+            FALLBACK:
+            COPIAR URL
+        */
+
+        if (
+            navigator.clipboard &&
+            window.isSecureContext
+        ) {
+
+            await navigator.clipboard.writeText(
+                url
+            );
+
+
+            await registrarCompartido();
+
+           activarEstadoCompartido();
+            animarAplausos();
+
+            mostrarNotificacionGuardado(
+                "Enlace copiado",
+                "El enlace se copió correctamente."
+            );
+
+
+            return;
+
+        }
+
+
+        /*
+            NAVEGADORES MUY ANTIGUOS
+        */
+
+        const textarea =
+            document.createElement("textarea");
+
+        textarea.value =
+            url;
+
+        textarea.style.position =
+            "fixed";
+
+        textarea.style.opacity =
+            "0";
+
+        document.body.appendChild(
+            textarea
+        );
+
+        textarea.select();
+
+        document.execCommand(
+            "copy"
+        );
+
+        textarea.remove();
+
+
+        await registrarCompartido();
+
+                   activarEstadoCompartido();
+            animarAplausos();
+
+
+        mostrarNotificacionGuardado(
+            "Enlace copiado",
+            "El enlace se copió correctamente."
+        );
+
+
+    } catch (error) {
+
+        /*
+            Si el usuario cancela el
+            diálogo de compartir NO contamos.
+        */
+
+        if (
+            error &&
+            error.name === "AbortError"
+        ) {
+
+            return;
+
+        }
+
+
+        console.error(
+            "Error compartiendo:",
+            error
+        );
+
+
+    } finally {
+
+        cardShareButton.dataset.procesando =
+            "false";
+
+    }
+
+}
+
+/*====================================================
+    REGISTRAR COMPARTIDO EN SERVIDOR
+====================================================*/
+
+async function registrarCompartido() {
+
+    const deviceId =
+        obtenerDeviceId();
+
+
+    const respuesta =
+        await fetch(
+            "/stats/share",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+
+                body:
+                    JSON.stringify({
+                        deviceId
+                    })
+            }
+        );
+
+
+    if (!respuesta.ok) {
+
+        throw new Error(
+            `HTTP ${respuesta.status}`
+        );
+
+    }
+
+
+    const datos =
+        await respuesta.json();
+
+
+    if (
+        typeof datos.shares === "number"
+    ) {
+
+        cardSharesCounter.textContent =
+            datos.shares;
+
+    }
+
+
+    return datos;
+
+}
+
+
+
+/*====================================================
+    SONIDOS  COMPARTIR
+====================================================*/
+
+
+const sonidoShare = new Audio(
+    "/sounds/share.mp3"
+);
+
+
+
+
+/*====================================================
+    REPRODUCIR SONIDO COMPARTIR
+====================================================*/
+
+function reproducirSonidoShare(){
+
+    sonidoShare.currentTime = 0;
+
+    sonidoShare.volume = 0.7;
+
+    sonidoShare.play().catch(
+        () => {}
+    );
+
+}
+
+
+
+/*====================================================
+    ANIMACIÓN DEL BOTÓN COMPARTIR
+====================================================*/
+
+function activarEstadoCompartido() {
+
+    if (!cardShareButton) {
+        return;
+    }
+
+
+    cardShareButton.classList.add(
+        "shared"
+    );
+
+      reproducirSonidoShare();
+
+}
+
+
+
+
+/*====================================================
+    PERMISO PARA MOVER CARDSTATS
+====================================================*/
+
+let cardStatsAdminPuedeMover = false;
+
+
+/*====================================================
+    MOVER ESTADÍSTICAS DENTRO DE LA CARD
+====================================================*/
+
+
+function activarArrastreCardStats() {
+
+    const stats =
+        document.getElementById("cardStats");
+
+    if (!stats) return;
+
+
+    const card =
+        stats.closest(".card");
+
+    if (!card) return;
+
+
+    let arrastrando = false;
+
+    let inicioX = 0;
+    let inicioY = 0;
+
+    let posicionInicialX = 0;
+    let posicionInicialY = 0;
+
+
+    /*================================================
+        INICIAR
+    =================================================*/
+
+function iniciarArrastre(e) {
+
+
+
+    
+
+
+ const tipo =
+        obtenerTipoDispositivoCardStats();
+
+    const posicion =
+        cardStatsPositions[tipo];
+
+
+    if(
+        posicion &&
+        posicion.locked
+    ){
+
+        return;
+
+    }
+
+
+    if(!cardStatsAdminPuedeMover){
+
+        return;
+
+    }
+
+
+    /*
+        SOLO EL ADMINISTRADOR
+        PUEDE MOVER CARDSTATS
+    */
+
+    if (!cardStatsAdminPuedeMover) {
+        return;
+    }
+
+
+ 
+/*
+    Los botones no deben iniciar
+    el movimiento de cardStats.
+*/
+
+if (
+    e.target.closest("button")
+) {
+
+    return;
+
+} 
+
+
+        const punto =
+            e.touches
+                ? e.touches[0]
+                : e;
+
+
+        const cardRect =
+            card.getBoundingClientRect();
+
+
+        const statsRect =
+            stats.getBoundingClientRect();
+
+
+        inicioX =
+            punto.clientX;
+
+        inicioY =
+            punto.clientY;
+
+
+        /*
+            Convertimos la posición visual
+            a posición relativa a la card.
+        */
+
+        posicionInicialX =
+            statsRect.left -
+            cardRect.left;
+
+
+        posicionInicialY =
+            statsRect.top -
+            cardRect.top;
+
+
+        /*
+            Desde este momento dejamos
+            de utilizar translateX(-50%).
+        */
+
+        stats.style.transform =
+            "none";
+
+
+        /*
+            Aplicamos directamente
+            la posición calculada.
+        */
+
+        stats.style.left =
+            posicionInicialX + "px";
+
+
+        stats.style.top =
+            posicionInicialY + "px";
+
+
+        arrastrando = true;
+
+
+        stats.classList.add(
+            "dragging"
+        );
+
+
+        e.preventDefault();
+    }
+
+
+
+
+    /*================================================
+        MOVER
+    =================================================*/
+
+    function mover(e) {
+
+        if (!arrastrando) return;
+
+
+        const punto =
+            e.touches
+                ? e.touches[0]
+                : e;
+
+
+        const cardRect =
+            card.getBoundingClientRect();
+
+
+        const statsRect =
+            stats.getBoundingClientRect();
+
+
+        let nuevaX =
+            posicionInicialX +
+            (
+                punto.clientX -
+                inicioX
+            );
+
+
+        let nuevaY =
+            posicionInicialY +
+            (
+                punto.clientY -
+                inicioY
+            );
+
+
+        /*
+            Límites
+        */
+
+        const limiteIzquierdo =
+            0;
+
+
+        const limiteSuperior =
+            0;
+
+
+        const limiteDerecho =
+            cardRect.width -
+            statsRect.width;
+
+
+        const limiteInferior =
+            cardRect.height -
+            statsRect.height;
+
+
+        /*
+            Evitar salir de la card
+        */
+
+        nuevaX =
+            Math.max(
+                limiteIzquierdo,
+                Math.min(
+                    nuevaX,
+                    limiteDerecho
+                )
+            );
+
+
+        nuevaY =
+            Math.max(
+                limiteSuperior,
+                Math.min(
+                    nuevaY,
+                    limiteInferior
+                )
+            );
+
+
+        /*
+            Aplicar posición
+        */
+
+        stats.style.left =
+            nuevaX + "px";
+
+
+        stats.style.top =
+            nuevaY + "px";
+
+
+        e.preventDefault();
+    }
+
+
+    /*================================================
+        TERMINAR
+    =================================================*/
+
+    function terminarArrastre() {
+
+        if (!arrastrando) return;
+
+
+        arrastrando = false;
+
+
+        stats.classList.remove(
+            "dragging"
+        );
+
+
+        guardarPosicionCardStats();
+    }
+
+
+    /*================================================
+        MOUSE
+    =================================================*/
+
+    stats.addEventListener(
+        "mousedown",
+        iniciarArrastre
+    );
+
+
+    document.addEventListener(
+        "mousemove",
+        mover
+    );
+
+
+    document.addEventListener(
+        "mouseup",
+        terminarArrastre
+    );
+
+
+    /*================================================
+        TOUCH
+    =================================================*/
+
+    stats.addEventListener(
+        "touchstart",
+        iniciarArrastre,
+        {
+            passive: false
+        }
+    );
+
+
+    document.addEventListener(
+        "touchmove",
+        mover,
+        {
+            passive: false
+        }
+    );
+
+
+    document.addEventListener(
+        "touchend",
+        terminarArrastre
+    );
+}
+
+
+/*====================================================
+    POSICIONES INDEPENDIENTES DE CARDSTATS
+    WEB + CELULAR
+====================================================*/
+
+let cardStatsPositions = {
+
+    web: {
+
+        x: 0,
+
+        y: 230,
+
+        locked: false
+
+    },
+
+    mobile: {
+
+        x: 0,
+
+        y: 230,
+
+        locked: false
+
+    }
+
+};
+
+
+/*====================================================
+    DETECTAR TIPO DE DISPOSITIVO
+====================================================*/
+
+function obtenerTipoDispositivoCardStats(){
+
+    return window.matchMedia(
+        "(max-width: 600px)"
+    ).matches
+
+        ? "mobile"
+
+        : "web";
+
+}
+
+
+/*====================================================
+    CARGAR POSICIONES DESDE SERVIDOR
+====================================================*/
+
+async function cargarPosicionesCardStats(){
+
+    try{
+
+        const respuesta =
+            await fetch(
+                "/card-stats/position",
+                {
+                    cache:"no-store"
+                }
+            );
+
+
+        if(!respuesta.ok){
+
+            throw new Error(
+                `HTTP ${respuesta.status}`
+            );
+
+        }
+
+
+        const datos =
+            await respuesta.json();
+
+
+        /*=========================================
+            WEB
+        =========================================*/
+
+        if(datos.web){
+
+            cardStatsPositions.web = {
+
+                x:
+                    Number.isFinite(
+                        Number(
+                            datos.web.x
+                        )
+                    )
+                        ? Number(
+                            datos.web.x
+                        )
+                        : 0,
+
+                y:
+                    Number.isFinite(
+                        Number(
+                            datos.web.y
+                        )
+                    )
+                        ? Number(
+                            datos.web.y
+                        )
+                        : 230,
+
+                locked:
+                    datos.web.locked === true
+
+            };
+
+        }
+
+
+        /*=========================================
+            CELULAR
+        =========================================*/
+
+        if(datos.mobile){
+
+            cardStatsPositions.mobile = {
+
+                x:
+                    Number.isFinite(
+                        Number(
+                            datos.mobile.x
+                        )
+                    )
+                        ? Number(
+                            datos.mobile.x
+                        )
+                        : 0,
+
+                y:
+                    Number.isFinite(
+                        Number(
+                            datos.mobile.y
+                        )
+                    )
+                        ? Number(
+                            datos.mobile.y
+                        )
+                        : 230,
+
+                locked:
+                    datos.mobile.locked === true
+
+            };
+
+        }
+
+
+        /*=========================================
+            APLICAR LA POSICIÓN DEL DISPOSITIVO
+        =========================================*/
+
+        aplicarPosicionCardStats();
+
+
+        /*=========================================
+            ACTUALIZAR INPUTS DEL MODAL
+        =========================================*/
+
+        cargarPosicionesEnModal();
+
+
+    }catch(error){
+
+        console.error(
+            "Error cargando posiciones de CardStats:",
+            error
+        );
+
+    }
+
+}
+
+
+/*====================================================
+    APLICAR POSICIÓN SEGÚN DISPOSITIVO
+====================================================*/
+
+function aplicarPosicionCardStats(){
+
+    const stats =
+        document.getElementById(
+            "cardStats"
+        );
+
+
+    if(!stats){
+
+        return;
+
+    }
+
+
+    const tipo =
+        obtenerTipoDispositivoCardStats();
+
+
+    const posicion =
+        cardStatsPositions[tipo];
+
+
+    if(!posicion){
+
+        return;
+
+    }
+
+
+    stats.style.transform =
+        "none";
+
+
+    stats.style.left =
+        posicion.x + "px";
+
+
+    stats.style.top =
+        posicion.y + "px";
+
+}
+
+
+/*====================================================
+    CARGAR LAS DOS POSICIONES EN EL MODAL
+====================================================*/
+
+function cargarPosicionesEnModal(){
+
+    if(cardStatsWebX){
+
+        cardStatsWebX.value =
+            Math.round(
+                cardStatsPositions.web.x
+            );
+
+    }
+
+
+    if(cardStatsWebY){
+
+        cardStatsWebY.value =
+            Math.round(
+                cardStatsPositions.web.y
+            );
+
+    }
+
+
+    if(cardStatsWebLock){
+
+        cardStatsWebLock.checked =
+            cardStatsPositions.web.locked;
+
+    }
+
+
+    if(cardStatsMobileX){
+
+        cardStatsMobileX.value =
+            Math.round(
+                cardStatsPositions.mobile.x
+            );
+
+    }
+
+
+    if(cardStatsMobileY){
+
+        cardStatsMobileY.value =
+            Math.round(
+                cardStatsPositions.mobile.y
+            );
+
+    }
+
+
+    if(cardStatsMobileLock){
+
+        cardStatsMobileLock.checked =
+            cardStatsPositions.mobile.locked;
+
+    }
+
+}
+
+
+/*====================================================
+    GUARDAR TODAS LAS POSICIONES
+====================================================*/
+
+async function guardarTodasLasPosicionesCardStats(){
+
+    try{
+
+        const respuesta =
+            await fetch(
+                "/card-stats/position",
+                {
+
+                    method:"POST",
+
+                    headers:{
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify(
+                            cardStatsPositions
+                        )
+
+                }
+            );
+
+
+        if(!respuesta.ok){
+
+            throw new Error(
+                `HTTP ${respuesta.status}`
+            );
+
+        }
+
+
+    }catch(error){
+
+        console.error(
+            "Error guardando posiciones de CardStats:",
+            error
+        );
+
+    }
+
+}
+
+
+/*====================================================
+    GUARDAR POSICIÓN DESPUÉS DE ARRASTRAR
+====================================================*/
+
+async function guardarPosicionCardStats(){
+
+    const stats =
+        document.getElementById(
+            "cardStats"
+        );
+
+
+    if(!stats){
+
+        return;
+
+    }
+
+
+    const tipo =
+        obtenerTipoDispositivoCardStats();
+
+
+    const posicion =
+        cardStatsPositions[tipo];
+
+
+    if(!posicion){
+
+        return;
+
+    }
+
+
+    if(posicion.locked){
+
+        return;
+
+    }
+
+
+    posicion.x =
+        Math.round(
+            stats.offsetLeft
+        );
+
+
+    posicion.y =
+        Math.round(
+            stats.offsetTop
+        );
+
+
+    cargarPosicionesEnModal();
+
+
+    await guardarTodasLasPosicionesCardStats();
+
+}
+
+
+/*====================================================
+    INPUTS MANUALES DE POSICIÓN
+====================================================*/
+
+function conectarInputPosicionCardStats(
+    inputX,
+    inputY,
+    tipo
+){
+
+    if(!inputX || !inputY){
+
+        return;
+
+    }
+
+
+    function aplicar(){
+
+        const x =
+            Math.max(
+                0,
+                Number(inputX.value) || 0
+            );
+
+
+        const y =
+            Math.max(
+                0,
+                Number(inputY.value) || 0
+            );
+
+
+        cardStatsPositions[tipo].x =
+            x;
+
+
+        cardStatsPositions[tipo].y =
+            y;
+
+
+        if(
+            obtenerTipoDispositivoCardStats()
+            === tipo
+        ){
+
+            const stats =
+                document.getElementById(
+                    "cardStats"
+                );
+
+
+            if(stats){
+
+                stats.style.left =
+                    x + "px";
+
+
+                stats.style.top =
+                    y + "px";
+
+            }
+
+        }
+
+
+        guardarTodasLasPosicionesCardStats();
+
+    }
+
+
+    inputX.addEventListener(
+        "input",
+        aplicar
+    );
+
+
+    inputY.addEventListener(
+        "input",
+        aplicar
+    );
+
+}
+
+
+/*====================================================
+    BLOQUEAR POSICIÓN WEB
+====================================================*/
+
+if(cardStatsWebLock){
+
+    cardStatsWebLock.addEventListener(
+        "change",
+        () => {
+
+            cardStatsPositions.web.locked =
+                cardStatsWebLock.checked;
+
+
+            guardarTodasLasPosicionesCardStats();
+
+        }
+    );
+
+}
+
+
+/*====================================================
+    BLOQUEAR POSICIÓN CELULAR
+====================================================*/
+
+if(cardStatsMobileLock){
+
+    cardStatsMobileLock.addEventListener(
+        "change",
+        () => {
+
+            cardStatsPositions.mobile.locked =
+                cardStatsMobileLock.checked;
+
+
+            guardarTodasLasPosicionesCardStats();
+
+        }
+    );
+
+}
+
+
+/*====================================================
+    CONECTAR INPUTS WEB
+====================================================*/
+
+conectarInputPosicionCardStats(
+
+    cardStatsWebX,
+
+    cardStatsWebY,
+
+    "web"
+
+);
+
+
+/*====================================================
+    CONECTAR INPUTS CELULAR
+====================================================*/
+
+conectarInputPosicionCardStats(
+
+    cardStatsMobileX,
+
+    cardStatsMobileY,
+
+    "mobile"
+
+);
+
+
+/*====================================================
+    CAMBIAR ENTRE WEB Y CELULAR
+====================================================*/
+
+window.addEventListener(
+    "resize",
+    () => {
+
+        aplicarPosicionCardStats();
+
+        cargarPosicionesEnModal();
+
+    }
+);
+
+
+/*====================================================
+    INICIALIZAR
+====================================================*/
+
+activarArrastreCardStats();
+
+cargarPosicionesCardStats();
+
+
+
+
+
+
+
+/*====================================================
+    COLOR AUTOMÁTICO DE ICONOS CARDSTATS
+====================================================*/
+
+function actualizarColorIconosCardStats() {
+
+    const stats =
+        document.getElementById("cardStats");
+
+    if (!stats) {
+        return;
+    }
+
+
+    /*
+     * cardStats está directamente dentro de .card
+     */
+    const card =
+        stats.parentElement;
+
+    if (!card) {
+        return;
+    }
+
+
+    const estilo =
+        getComputedStyle(card);
+
+
+    const backgroundColor =
+        estilo.backgroundColor;
+
+    const backgroundImage =
+        estilo.backgroundImage;
+
+
+    let r = null;
+    let g = null;
+    let b = null;
+
+
+    /*================================================
+        1. BUSCAR COLORES EN EL GRADIENTE
+    =================================================*/
+
+    const colores =
+        backgroundImage.match(
+            /rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)(?:[,\s]+[\d.]+)?\s*\)/g
+        );
+
+
+    if (
+        colores &&
+        colores.length > 0
+    ) {
+
+        let sumaR = 0;
+        let sumaG = 0;
+        let sumaB = 0;
+
+        let cantidad = 0;
+
+
+        colores.forEach(color => {
+
+            const rgb =
+                color.match(
+                    /rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/
+                );
+
+            if (!rgb) {
+                return;
+            }
+
+
+            sumaR += Number(rgb[1]);
+            sumaG += Number(rgb[2]);
+            sumaB += Number(rgb[3]);
+
+            cantidad++;
+
+        });
+
+
+        if (cantidad > 0) {
+
+            r = sumaR / cantidad;
+            g = sumaG / cantidad;
+            b = sumaB / cantidad;
+
+        }
+
+    }
+
+
+    /*================================================
+        2. SI NO HAY GRADIENTE → USAR COLOR
+    =================================================*/
+
+    if (
+        r === null ||
+        g === null ||
+        b === null
+    ) {
+
+        const rgb =
+            backgroundColor.match(
+                /rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/
+            );
+
+
+        if (rgb) {
+
+            r = Number(rgb[1]);
+            g = Number(rgb[2]);
+            b = Number(rgb[3]);
+
+        }
+
+    }
+
+
+    /*================================================
+        3. SI TODAVÍA NO HAY COLOR
+    =================================================*/
+
+    if (
+        r === null ||
+        g === null ||
+        b === null
+    ) {
+
+        return;
+
+    }
+
+
+    /*================================================
+        4. LUMINOSIDAD
+    =================================================*/
+
+    const luminosidad =
+        (
+            r * 299 +
+            g * 587 +
+            b * 114
+        ) / 1000;
+
+
+    /*================================================
+        5. COLOR FINAL
+    =================================================*/
+
+    const colorIconos =
+        luminosidad >= 150
+            ? "#000000"
+            : "#ffffff";
+
+
+    /*================================================
+        6. APLICAR
+    =================================================*/
+
+    stats.style.setProperty(
+        "--card-stats-icon-color",
+        colorIconos
+    );
+
+
+}
+
+
+function detectarColorFondoCardStats() {
+
+    const card =
+        document.querySelector(".card");
+
+    const stats =
+        document.getElementById("cardStats");
+
+
+    if (!card || !stats) {
+        return;
+    }
+
+
+    const rect =
+        stats.getBoundingClientRect();
+
+
+    /*
+        Tomamos el centro de cardStats.
+    */
+
+    const x =
+        rect.left +
+        rect.width / 2;
+
+
+    const y =
+        rect.top +
+        rect.height / 2;
+
+
+    /*
+        Ocultamos temporalmente cardStats
+        para poder consultar qué hay detrás.
+    */
+
+    const visibilidad =
+        stats.style.visibility;
+
+
+    stats.style.visibility =
+        "hidden";
+
+
+    const elementoDebajo =
+        document.elementFromPoint(
+            x,
+            y
+        );
+
+
+    stats.style.visibility =
+        visibilidad;
+
+
+    if (!elementoDebajo) {
+        return;
+    }
+
+
+    /*
+        Buscamos la tarjeta real.
+    */
+
+    const tarjeta =
+        elementoDebajo.closest(".card");
+
+
+    if (!tarjeta) {
+        return;
+    }
+
+
+    const estilo =
+        getComputedStyle(tarjeta);
+
+
+    /*
+        Si tenemos un color sólido,
+        lo utilizamos.
+    */
+
+    const rgb =
+        estilo.backgroundColor.match(
+            /rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/
+        );
+
+
+    if (!rgb) {
+        return;
+    }
+
+
+    const r =
+        Number(rgb[1]);
+
+    const g =
+        Number(rgb[2]);
+
+    const b =
+        Number(rgb[3]);
+
+
+    const luminosidad =
+        (
+            r * 299 +
+            g * 587 +
+            b * 114
+        ) / 1000;
+
+
+    const color =
+        luminosidad >= 150
+            ? "#000000"
+            : "#ffffff";
+
+
+    stats.style.setProperty(
+        "--card-stats-icon-color",
+        color
+    );
+}
+
+
+/*====================================================
+            GUARDAR BOTONES
+====================================================*/
+
+let guardandoBotones = false;
+let guardarBotonesPendiente = false;
+
+async function guardarBotones(opciones = {}){
+
+    /*
+        Las operaciones automáticas del recordatorio pueden necesitar
+        persistir cambios, pero no deben mostrar al visitante una
+        notificación de sesión expirada. El guardado manual continúa
+        verificando la sesión normalmente.
+    */
+    const guardadoSilencioso =
+        opciones?.silencioso === true;
+
+    const contenedor =
+        document.getElementById("linksContainer");
+
+    if(!contenedor) return;
+
+    if(guardandoBotones){
+
+        guardarBotonesPendiente = true;
+
+        return;
+
+    }
+
+    guardandoBotones = true;
+
+    try{
+
+        do{
+
+            guardarBotonesPendiente = false;
+
+            const datos = [];
+
+            contenedor
+                .querySelectorAll(".link-card")
+                .forEach(card => {
+
+                    const span =
+                        card.querySelector(".center span");
+
+                    const icon =
+                        card.querySelector(".left i");
+
+                    if(!span || !icon) return;
+
+                    datos.push({
+
+                        texto:
+    span.innerText.trim() ||
+    card.dataset.buttonText ||
+    "Nuevo botón",
+
+                        icono:
+                            icon.className,
+
+                        url:
+                            card.dataset.url || "",
+
+                        textColor:
+                            card.dataset.textColor ||
+                            "#ffffff",
+
+                        description:
+                            card.dataset.description ||
+                            "",
+
+                        newTab:
+                            card.dataset.newTab === "true",
+
+                        socialName:
+                            card.dataset.socialName || "",
+
+                        infoName:
+                            card.dataset.infoName || "",
+
+                        infoDescription:
+                            card.dataset.infoDescription || "",
+
+                        socialUsername:
+                            card.dataset.socialUsername || "",
+
+                        socialPhone:
+                            card.dataset.socialPhone || "",
+
+                        socialPhoto:
+                            card.dataset.socialPhoto || "",
+
+                        socialFollowing:
+                            card.dataset.socialFollowing || "",
+
+                        socialFollowers:
+                            card.dataset.socialFollowers || "",
+
+                        socialLikes:
+                            card.dataset.socialLikes || "",
+
+                        youtubeDescription:
+                            card.dataset.youtubeDescription || "",
+
+                        socialPanelColor:
+                            card.dataset.socialPanelColor ||
+                            "#202020",
+
+                        socialPanelTextColor:
+                            card.dataset.socialPanelTextColor ||
+                            "#ffffff",
+
+                        socialInfoPanelBackground:
+                            card.dataset.socialInfoPanelBackground ||
+                            "rgba(32,32,32,.82)",
+
+                        reminderEnabled:
+                            card.dataset.reminderEnabled === "true",
+
+                        reminderPhoneCountry:
+                            card.dataset.reminderPhoneCountry || "+51",
+
+                        reminderPhone:
+                            card.dataset.reminderPhone || "",
+
+                        reminderStartDate:
+                            card.dataset.reminderStartDate || "",
+
+                        reminderStartTime:
+                            card.dataset.reminderStartTime || "",
+
+                        reminderEndDate:
+                            card.dataset.reminderEndDate || "",
+
+                        reminderEndTime:
+                            card.dataset.reminderEndTime || "",
+
+                        reminderTimezone:
+                            card.dataset.reminderTimezone ||
+                            "America/Lima",
+
+                        reminderMessage:
+                            card.dataset.reminderMessage || "",
+
+                        reminderWhatsappEnabled:
+                            card.dataset.reminderWhatsappEnabled === "true",
+
+                        reminderWhatsappMessage:
+                            card.dataset.reminderWhatsappMessage || "",
+
+                        reminderLeftMessageEnabled:
+                            card.dataset.reminderLeftMessageEnabled === "true",
+
+                        reminderLeftMessageTime:
+                            card.dataset.reminderLeftMessageTime || "",
+
+                        reminderLeftMessageFrequency:
+                            card.dataset.reminderLeftMessageFrequency || "1",
+
+                        reminderAlarmEnabled:
+                            card.dataset.reminderAlarmEnabled === "true",
+
+                        reminderLastSentKey:
+                            card.dataset.reminderLastSentKey || "",
+
+                        reminderWhatsappPending:
+                            card.dataset.reminderWhatsappPending === "true",
+
+                        reminderPendingEndDate:
+                            card.dataset.reminderPendingEndDate || "",
+
+                        reminderPendingEndTime:
+                            card.dataset.reminderPendingEndTime || "",
+
+                        reminderPendingTimezone:
+                            card.dataset.reminderPendingTimezone ||
+                            "America/Lima"
+
+                    });
+
+                });
+
+            /*
+                Verificamos la sesión antes de intentar guardar. Así,
+                una sesión vencida no genera un POST 403 en cada
+                actualización automática del recordatorio.
+            */
+            const estadoSesion =
+                await fetch("/admin/status", {
+                    method: "GET",
+                    credentials: "same-origin",
+                    cache: "no-store"
+                });
+
+            const sesion =
+                estadoSesion.ok
+                    ? await estadoSesion.json()
+                    : { admin: false };
+
+            if(!sesion.admin){
+
+                if(!guardadoSilencioso){
+                    mostrarNotificacionGuardado(
+                        "Sesión de administrador",
+                        "La sesión no está activa. Inicia sesión nuevamente para guardar los cambios."
+                    );
+                }
+
+                return;
+            }
+
+            const respuesta = await fetch("/botones", {
+
+                method: "POST",
+
+                credentials: "same-origin",
+
+                headers: {
+
+                    "Content-Type": "application/json"
+
+                },
+
+                body: JSON.stringify(datos)
+
+            });
+
+            if(!respuesta.ok){
+
+                throw new Error(
+                    `HTTP ${respuesta.status}`
+                );
+
+            }
+
+      
+
+        }while(guardarBotonesPendiente);
+
+    }catch(error){
+
+        console.error(
+            "Error guardando botones:",
+            error
+        );
+
+    }finally{
+
+        guardandoBotones = false;
+
+    }
+
+}
+
+/*====================================================
+                PASO 10
+            CARGAR BOTONES
+====================================================*/
+
+async function cargarBotones() {
+
+    const contenedor =
+        document.getElementById("linksContainer");
+
+    if (!contenedor) return;
+
+    try {
+
+        const respuesta =
+            await fetch("/botones", {
+                cache: "no-store"
+            });
+
+        if(!respuesta.ok){
+
+            throw new Error(
+                `HTTP ${respuesta.status}`
+            );
+
+        }
+
+        const botonesServidor =
+            await respuesta.json();
+
+        if(!Array.isArray(botonesServidor)){
+
+            throw new Error(
+                "La respuesta de /botones no es un arreglo."
+            );
+
+        }
+
+        /*
+            Primero validamos los datos del servidor.
+            Después limpiamos el HTML inicial.
+            Durante esta carga NO se llama guardarBotones().
+        */
+
+        contenedor.innerHTML = "";
+
+        botonesServidor.forEach(btn => {
+
+            agregarBoton(
+
+                btn.texto,
+                btn.icono,
+                btn.url,
+                btn.textColor,
+                btn.description,
+                btn.newTab,
+                {
+                    socialName: btn.socialName || "",
+                    infoName: btn.infoName || "",
+                    infoDescription: btn.infoDescription || btn.description || "",
+                    socialUsername: btn.socialUsername || "",
+                    socialPhone: btn.socialPhone || "",
+                    socialPhoto: btn.socialPhoto || "",
+                    socialFollowing: btn.socialFollowing || "",
+                    socialFollowers: btn.socialFollowers || "",
+                    socialLikes: btn.socialLikes || "",
+                    youtubeDescription:
+                        btn.youtubeDescription || "",
+                    socialPanelColor:
+                        btn.socialPanelColor || "#202020",
+                    socialPanelTextColor:
+                        btn.socialPanelTextColor || "#ffffff",
+
+                    socialInfoPanelBackground:
+                        btn.socialInfoPanelBackground || "rgba(32,32,32,.82)",
+
+                    reminderEnabled:
+                        btn.reminderEnabled === true,
+
+                    reminderPhoneCountry:
+                        btn.reminderPhoneCountry || "+51",
+
+                    reminderPhone:
+                        btn.reminderPhone || "",
+
+                    reminderStartDate:
+                        btn.reminderStartDate || "",
+
+                    reminderStartTime:
+                        btn.reminderStartTime || "",
+
+                    reminderEndDate:
+                        btn.reminderEndDate || "",
+
+                    reminderEndTime:
+                        btn.reminderEndTime || "",
+
+                    reminderTimezone:
+                        btn.reminderTimezone || "America/Lima",
+
+                    reminderMessage:
+                        btn.reminderMessage || "",
+
+                    reminderWhatsappEnabled:
+                        btn.reminderWhatsappEnabled === true,
+
+                    reminderWhatsappMessage:
+                        btn.reminderWhatsappMessage || "",
+
+                    reminderLeftMessageEnabled:
+                        btn.reminderLeftMessageEnabled === true,
+
+                    reminderLeftMessageTime:
+                        btn.reminderLeftMessageTime || "",
+
+                    reminderLeftMessageFrequency:
+                        btn.reminderLeftMessageFrequency || "1",
+
+                    reminderAlarmEnabled:
+                        btn.reminderAlarmEnabled === true,
+
+                    reminderLastSentKey:
+                        btn.reminderLastSentKey || "",
+
+                    reminderWhatsappPending:
+                        btn.reminderWhatsappPending === true,
+
+                    reminderPendingEndDate:
+                        btn.reminderPendingEndDate || "",
+
+                    reminderPendingEndTime:
+                        btn.reminderPendingEndTime || "",
+
+                    reminderPendingTimezone:
+                        btn.reminderPendingTimezone ||
+                        "America/Lima"
+                }
+
+            );
+
+        });
+
+    } catch (error) {
+
+        console.error(
+            "Error cargando botones:",
+            error
+        );
+
+        /*
+            IMPORTANTE:
+            Si /botones falla, NO se recuperan los botones
+            escritos en index.html. El servidor es la única
+            fuente de verdad para la carga inicial.
+        */
+
+       
+
+    }
+
+    activarBotonesInfoUsuario();
+
+}
+
+
+ /*====================================================
+        CONTADOR DESCRIPCIÓN DEL BOTÓN
+        MÁXIMO 30 CARACTERES
+====================================================*/
+
+const linkDescription =
+    document.getElementById("linkDescription");
+
+const contadorDescripcionBoton =
+    document.getElementById("contadorDescripcionBoton");
+
+
+function actualizarContadorDescripcionBoton() {
+
+    if (
+        !linkDescription ||
+        !contadorDescripcionBoton
+    ) {
+        return;
+    }
+
+    contadorDescripcionBoton.textContent =
+        `${linkDescription.value.length} / 30`;
+
+}
+
+
+if (linkDescription) {
+
+    linkDescription.addEventListener(
+        "input",
+        actualizarContadorDescripcionBoton
+    );
+
+}
+
+
+let coloresTemaClaroGuardados=null;
+
+function cambiarTema(){
+
+    document.body.classList.toggle("dark");
+
+    const esModoOscuro = document.body.classList.contains("dark");
+
+    configuracion.theme = esModoOscuro ? "dark" : "light";
+
+    /*====================================================
+        MODO OSCURO: CARD NEGRA Y ANILLO CON TONOS OSCUROS
+    ====================================================*/
+    if(esModoOscuro){
+        if(!coloresTemaClaroGuardados){
+            coloresTemaClaroGuardados={
+                cardColor1:configuracion.cardColor1,
+                cardColor2:configuracion.cardColor2,
+                cardColor3:configuracion.cardColor3,
+                card:configuracion.card,
+                logoGradient:Array.isArray(configuracion.logoGradient) ? [...configuracion.logoGradient] : []
+            };
+        }
+        /* En modo oscuro la tarjeta siempre usa una escala neutra:
+           negro, gris oscuro y gris claro. */
+        configuracion.cardColor1 = "#000000";
+        configuracion.cardColor2 = "#2b2b2b";
+        configuracion.cardColor3 = "#666666";
+        configuracion.card = configuracion.cardColor2;
+
+        /* El anillo del logo pasa a una escala estrictamente
+       acromática en modo oscuro. Los colores originales se
+       conservan en coloresTemaClaroGuardados para restaurarlos
+       al volver al modo claro. */
+        configuracion.logoGradient=[
+            "#000000",
+            "#111111",
+            "#222222",
+            "#333333",
+            "#444444",
+            "#555555",
+            "#666666",
+            "#777777",
+            "#888888",
+            "#999999",
+            "#aaaaaa",
+            "#bbbbbb",
+            "#cccccc",
+            "#dddddd",
+            "#eeeeee",
+            "#f5f5f5",
+            "#ffffff",
+            "#ffffff"
+        ];
+    }else if(coloresTemaClaroGuardados){
+        configuracion.cardColor1=coloresTemaClaroGuardados.cardColor1 || configuracion.cardColor1;
+        configuracion.cardColor2=coloresTemaClaroGuardados.cardColor2 || configuracion.cardColor2;
+        configuracion.cardColor3=coloresTemaClaroGuardados.cardColor3 || configuracion.cardColor3;
+        configuracion.card=coloresTemaClaroGuardados.card || configuracion.card;
+        configuracion.logoGradient=[...coloresTemaClaroGuardados.logoGradient];
+        coloresTemaClaroGuardados=null;
+    }
+    [
+        ["cardColor1",configuracion.cardColor1],
+        ["cardColor2",configuracion.cardColor2],
+        ["cardColor3",configuracion.cardColor3]
+    ].forEach(([id,valor])=>{
+        const input=document.getElementById(id);
+        if(input)input.value=rgbObjetoAHex(obtenerRGBDesdeColor(valor));
+    });
+    actualizarGradienteTarjeta();
+    crearEditorGradienteLogo();
+    actualizarGradienteLogo();
+
+    /*=========================================
+        DESCRIPCIÓN DEL PERFIL
+    =========================================*/
+
+    const textColor = document.getElementById("descriptionTextColor");
+    const backgroundColor = document.getElementById("descriptionBackgroundColor");
+    const descripcion = document.getElementById("description");
+
+
+
+
+if(esModoOscuro){
+
+    textColor.value = "#ffffff";
+    backgroundColor.value = "#2b2b2b";
+
+    descripcion.style.color = "#ffffff";
+    descripcion.style.backgroundColor = "#2b2b2b";
+
+}else{
+
+    textColor.value =
+        configuracion.descriptionTextColor;
+
+    backgroundColor.value =
+        configuracion.descriptionBackgroundColor;
+
+    descripcion.style.color =
+        configuracion.descriptionTextColor;
+
+    descripcion.style.backgroundColor =
+        configuracion.descriptionBackgroundColor;
+
+}
+    guardarConfiguracionServidor();
+
+}
+
+
+const btnTheme =
+document.getElementById("btnTheme");
+
+btnTheme.onclick=()=>{
+
+    cambiarTema();
+
+    btnTheme.innerHTML=
+document.body.classList.contains("dark")
+
+?
+
+'<i class="fa-solid fa-sun"></i>'
+
+:
+
+'<i class="fa-solid fa-moon"></i>';
+
+}
+
+/*==================================================
+        MODO CELULAR SIEMPRE VERTICAL
+==================================================*/
+function bloquearOrientacionMovil(){
+
+    if (
+        window.matchMedia("(max-width: 768px)").matches &&
+        screen.orientation &&
+        typeof screen.orientation.lock === "function"
+    ) {
+        screen.orientation.lock("portrait").catch(() => {});
+    }
+
+}
+
+bloquearOrientacionMovil();
+
+window.addEventListener("resize", bloquearOrientacionMovil);
+
+
+/*================================================== 
+                ACTIVAR GLASS
+==================================================*/ 
+
+
+async function activarGlass() {
+
+    const card = document.querySelector(".card");
+
+    if (!card) return;
+
+    card.classList.toggle("glass");
+
+    configuracion.glass =
+        card.classList.contains("glass");
+
+    await guardarConfiguracionServidor();
+
+
+
+
+
+}
+
+
+/*================================================== 
+                ACTIVAR NEUMORPHISM
+==================================================*/ 
+
+
+async function activarNeumorphism() {
+
+    const card = document.querySelector(".card");
+
+    if (!card) return;
+
+    card.classList.toggle("neumorphism");
+
+    configuracion.neumorphism =
+        card.classList.contains("neumorphism");
+
+    await guardarConfiguracionServidor();
+
+
+
+   
+
+}
+
+
+/*==================================================
+            DRAG & DROP
+==================================================*/
+
+function activarDragDrop(){
+
+    const container = document.getElementById("linksContainer");
+
+    const cards = container.querySelectorAll(".link-card");
+
+    cards.forEach(card=>{
+
+        card.draggable = true;
+
+        card.ondragstart = ()=>{
+
+            card.classList.add("dragging");
+
+        };
+
+        card.ondragend = ()=>{
+
+            card.classList.remove("dragging");
+
+            document.querySelectorAll(".drag-over")
+            .forEach(c=>c.classList.remove("drag-over"));
+
+            guardarBotones();
+
+        };
+
+    });
+
+}
+
+const containerDrag = document.getElementById("linksContainer");
+
+containerDrag.ondragover = (e)=>{
+
+    e.preventDefault();
+
+    const dragging =
+    document.querySelector(".dragging");
+
+    if(!dragging) return;
+
+    const afterElement =
+    getDragAfterElement(containerDrag,e.clientY);
+
+    document.querySelectorAll(".drag-over")
+    .forEach(card=>card.classList.remove("drag-over"));
+
+    if(afterElement){
+
+        afterElement.classList.add("drag-over");
+
+        containerDrag.insertBefore(
+            dragging,
+            afterElement
+        );
+
+    }else{
+
+        containerDrag.appendChild(dragging);
+
+    }
+
+};
+
+function getDragAfterElement(container,y){
+
+    const elements=[...container.querySelectorAll(".link-card:not(.dragging)")];
+
+    return elements.reduce((closest,child)=>{
+
+        const box=child.getBoundingClientRect();
+
+        const offset=y-box.top-box.height/2;
+
+        if(offset<0 && offset>closest.offset){
+
+            return{
+
+                offset:offset,
+
+                element:child
+
+            };
+
+        }else{
+
+            return closest;
+
+        }
+
+    },{
+
+        offset:Number.NEGATIVE_INFINITY
+
+    }).element;
+
+}
+
+
+
+/*====================================
+        ADMINISTRADOR
+=====================================*/
+
+
+
+const adminModal=document.getElementById("adminModal");
+
+const footerLogo = document.getElementById("footerLogo");
+
+document
+.getElementById("footerLogo")
+.onclick = () => {
+
+    adminModal.style.display = "flex";
+
+};
+
+
+
+adminModal.onclick=(e)=>{
+
+    if(e.target===adminModal)
+
+        adminModal.style.display="none";
+
+};
+
+
+
+/*====================================
+     BOTON LOGIN
+=====================================*/
+
+document
+.getElementById("loginAdmin")
+.onclick = async () => {
+
+    const user =
+        document
+        .getElementById("adminUser")
+        .value
+        .trim();
+
+    const pass =
+        document
+        .getElementById("adminPass")
+        .value;
+
+
+    if (!user || !pass) {
+
+        alert(
+            "Introduce usuario y contraseña."
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        const respuesta =
+            await fetch("/admin/login", {
+
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+
+                body: JSON.stringify({
+
+                    usuario: user,
+
+                    password: pass
+
+                })
+
+            });
+
+
+        const datos =
+            await respuesta.json();
+
+
+        if (!respuesta.ok || !datos.ok) {
+
+            alert(
+                datos.error ||
+                "Usuario o contraseña incorrectos."
+            );
+
+            return;
+
+        }
+
+
+        adminModal.style.display =
+            "none";
+
+
+        document
+        .getElementById("adminUser")
+        .value = "";
+
+
+        document
+        .getElementById("adminPass")
+        .value = "";
+
+
+        mostrarControles();
+
+
+    } catch (error) {
+
+        console.error(
+            "Error iniciando sesión:",
+            error
+        );
+
+
+        alert(
+            "No se pudo conectar con el servidor."
+        );
+
+    }
+
+};
+
+
+
+
+
+function mostrarControles(){
+
+     administradorActivo =
+        true;
+
+    document.body.classList.add("admin-mode");
+    document.body.classList.remove("user-mode");
+
+    document.querySelectorAll(".admin-only").forEach(el=>{
+        el.style.display="";
+    });
+
+    document.querySelectorAll(".options").forEach(btn=>{
+        btn.style.display="flex";
+    });
+
+    document.querySelectorAll(".user-info-toggle").forEach(btn=>{
+        btn.style.display="none";
+    });
+
+    activarBotonesInfoUsuario();
+
+    activarRecordatoriosUsuario();
+
+    activarBotones();
+
+    activarLinks();
+
+    activarDragDrop();
+
+      /*
+        HABILITAR MOVIMIENTO DE CARDSTATS
+        SOLO PARA ADMIN
+    */
+
+
+    cardStatsAdminPuedeMover = true;
+
+     /*
+        EL ADMINISTRADOR YA TIENE
+        SU PROPIO CONTROL DE MÚSICA.
+
+        NO MOSTRAR BOTÓN DEL USUARIO.
+    */
+
+   
+
+    /*=========================================
+        OCULTAR BOTÓN DE MÚSICA DEL USUARIO
+
+        EL ADMINISTRADOR YA TIENE
+        SU PROPIO BOTÓN DE MÚSICA.
+    =========================================*/
+
+    if(musicUserButton){
+
+    musicUserButton.style.display =
+        "none";
+
+}
+
+}
+
+
+
+function ocultarControles(){
+
+ administradorActivo =
+        false;
+
+    document.body.classList.remove("admin-mode");
+    document.body.classList.add("user-mode");
+
+
+    document.querySelectorAll(".admin-only").forEach(el=>{
+        el.style.display="none";
+    });
+
+
+    document.querySelectorAll(".options").forEach(btn=>{
+        btn.style.display="none";
+    });
+
+    document.querySelectorAll(".user-info-toggle").forEach(btn=>{
+        btn.style.display="flex";
+    });
+
+    activarBotonesInfoUsuario();
+
+    activarRecordatoriosUsuario();
+
+
+    cardStatsAdminPuedeMover =
+        false;
+
+
+    /*=========================================
+        BOTÓN DE MÚSICA DEL USUARIO
+
+        SOLO SE MUESTRA SI EL ADMINISTRADOR
+        TIENE LA MÚSICA ACTIVADA.
+    =========================================*/
+
+    if(
+        musicUserButton &&
+        musicaUsuarioPermitida
+    ){
+
+        musicUserButton.style.display =
+            "flex";
+
+
+        actualizarBotonMusicaUsuario();
+
+    }
+
+}
+
+
+
+/*==============================
+      CERRAR SESIÓN
+==============================*/
+document
+.getElementById("logoutAdmin")
+.onclick = async () => {
+
+    await fetch("/admin/logout", {
+        method: "POST"
+    });
+
+    ocultarControles();
+
+    adminModal.style.display = "none";
+
+};
+
+
+
+async function cargarEstadoAdmin(){
+
+    const res=await fetch("/admin/status");
+
+    const datos=await res.json();
+
+    if(datos.admin){
+
+        mostrarControles();
+
+    }else{
+
+        ocultarControles();
+
+    }
+
+}
+
+
+
+
+/*====================================================
+            PASO 14
+        INICIALIZAR APLICACIÓN
+====================================================*/
+
+
+/*====================================================
+        EDITOR DE ICONOS DE REDES
+====================================================*/
+
+const REDES_ICONOS = {
+    whatsapp: { nombre:"WhatsApp", icono:"fab fa-whatsapp" },
+    facebook: { nombre:"Facebook", icono:"fab fa-facebook" },
+    instagram: { nombre:"Instagram", icono:"fab fa-instagram" },
+    tiktok: { nombre:"TikTok", icono:"fab fa-tiktok" },
+    youtube: { nombre:"YouTube", icono:"fab fa-youtube" },
+    telegram: { nombre:"Telegram", icono:"fab fa-telegram" },
+    linkedin: { nombre:"LinkedIn", icono:"fab fa-linkedin" },
+    github: { nombre:"GitHub", icono:"fab fa-github" },
+    x: { nombre:"X", icono:"fab fa-x-twitter" },
+    web: { nombre:"Web", icono:"fa-solid fa-globe" }
+};
+
+function normalizarRedesSociales(){
+
+    if(typeof configuracion.socialIconsEnabled !== "boolean"){
+        configuracion.socialIconsEnabled = true;
+    }
+
+    if(!Array.isArray(configuracion.socialIcons)){
+        configuracion.socialIcons = [
+            {tipo:"whatsapp", url:"https://api.whatsapp.com/"},
+            {tipo:"facebook", url:"https://www.facebook.com/"},
+            {tipo:"instagram", url:"https://www.instagram.com/"},
+            {tipo:"tiktok", url:"https://www.tiktok.com/"},
+            {tipo:"youtube", url:"https://www.youtube.com/"}
+        ];
+    }
+
+    configuracion.socialIcons =
+        configuracion.socialIcons
+            .filter(red => red && REDES_ICONOS[red.tipo])
+            .slice(0,6);
+
+    if(!configuracion.socialIconsColor){
+        configuracion.socialIconsColor = "#ffffff";
+    }
+
+    if(!configuracion.socialIconsBackgroundColor){
+        configuracion.socialIconsBackgroundColor = "rgba(255,255,255,.07)";
+    }
+
+    if(!configuracion.socialIconsBorderColor){
+        configuracion.socialIconsBorderColor = "rgba(255,255,255,.35)";
+    }
+
+    if(
+        configuracion.socialIconsPosition !== "bottom" &&
+        configuracion.socialIconsPosition !== "top"
+    ){
+        configuracion.socialIconsPosition = "top";
+    }
+}
+
+function aplicarEstiloIconosRedes(){
+    const color =
+        configuracion.socialIconsColor || "#ffffff";
+
+    const fondo =
+        configuracion.socialIconsBackgroundColor ||
+        "rgba(255,255,255,.07)";
+
+    const contorno =
+        configuracion.socialIconsBorderColor ||
+        "rgba(255,255,255,.35)";
+
+    document.documentElement.style.setProperty(
+        "--social-icons-color",
+        color
+    );
+
+    document.documentElement.style.setProperty(
+        "--social-icons-background",
+        fondo
+    );
+
+    document.documentElement.style.setProperty(
+        "--social-icons-border",
+        contorno
+    );
+}
+
+function renderizarIconosRedes(){
+    normalizarRedesSociales();
+
+    const area =
+        document.getElementById("socialNetworksArea");
+    const container =
+        document.getElementById("socialNetworksContainer");
+    const links =
+        document.getElementById("linksContainer");
+    const card =
+        document.querySelector(".card");
+
+    if(!area || !container || !links || !card){
+        return;
+    }
+
+    container.innerHTML = "";
+
+    configuracion.socialIcons.forEach(red => {
+        const meta = REDES_ICONOS[red.tipo];
+        if(!meta) return;
+
+        const a = document.createElement("a");
+        a.className = "social-network-icon";
+        a.href = red.url || "#";
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.title = meta.nombre;
+        a.dataset.type = red.tipo;
+        a.innerHTML = `<i class="${meta.icono}"></i>`;
+
+        if(!red.url){
+            a.addEventListener("click", e => e.preventDefault());
+        }
+
+        container.appendChild(a);
+    });
+
+    aplicarEstiloIconosRedes();
+
+    if(configuracion.socialIconsPosition === "bottom"){
+        card.insertBefore(area, null);
+        card.appendChild(area);
+    }else{
+        card.insertBefore(area, links);
+    }
+
+    const iconosActivos =
+        configuracion.socialIconsEnabled !== false;
+
+    container.style.display =
+        iconosActivos ? "flex" : "none";
+
+    const adminBtn =
+        document.getElementById("socialNetworksAdminButton");
+
+    if(adminBtn){
+        adminBtn.style.display =
+            administradorActivo ? "flex" : "none";
+    }
+
+    /*
+        El área permanece visible para el administrador aunque
+        los iconos estén desactivados, para conservar el botón
+        "Editar iconos de redes".
+    */
+    area.style.display =
+        (
+            iconosActivos &&
+            configuracion.socialIcons.length
+        ) || administradorActivo
+            ? "flex"
+            : "none";
+}
+
+
+
+
+/*
+    La fila conserva el tipo aunque se vuelva a renderizar.
+*/
+function crearFilaRedSocial(red, indice){
+    const meta =
+        REDES_ICONOS[red.tipo] || REDES_ICONOS.web;
+
+    const fila = document.createElement("div");
+    fila.className = "social-network-row";
+    fila.dataset.index = indice;
+    fila.dataset.type = red.tipo;
+
+    fila.innerHTML = `
+        <div class="social-network-row-icon">
+            <i class="${meta.icono}"></i>
+        </div>
+
+        <div class="social-network-row-main">
+            <strong>${escaparHTML(meta.nombre)}</strong>
+            <input
+                type="url"
+                class="social-network-url"
+                placeholder="https://..."
+                value="${escaparHTML(red.url || "")}">
+        </div>
+
+        <button
+            type="button"
+            class="social-network-remove"
+            title="Eliminar icono"
+            aria-label="Eliminar ${escaparHTML(meta.nombre)}">
+            <i class="fa-solid fa-trash"></i>
+        </button>
+    `;
+
+    fila.querySelector(".social-network-remove").onclick = () => {
+        fila.remove();
+    };
+
+    return fila;
+}
+
+
+/*====================================================
+    RENDERIZAR FILAS DEL EDITOR DE REDES
+====================================================*/
+
+function renderizarFilasEditorRedes(){
+
+    const contenedor =
+        document.getElementById("socialNetworkRows");
+
+    if(!contenedor){
+        return;
+    }
+
+    contenedor.innerHTML = "";
+
+    normalizarRedesSociales();
+
+    configuracion.socialIcons.forEach((red, indice) => {
+
+        const fila =
+            crearFilaRedSocial(red, indice);
+
+        contenedor.appendChild(fila);
+
+    });
+}
+
+
+function leerFilasEditorRedes(){
+
+    const filas =
+        document.querySelectorAll(
+            "#socialNetworkRows .social-network-row"
+        );
+
+    const redes = [];
+
+    filas.forEach(fila => {
+
+        const tipo =
+            fila.dataset.type;
+
+        const input =
+            fila.querySelector(".social-network-url");
+
+        if(!tipo || !REDES_ICONOS[tipo]){
+            return;
+        }
+
+        redes.push({
+            tipo: tipo,
+            url: input ? input.value.trim() : ""
+        });
+
+    });
+
+    return redes.slice(0, 6);
+}
+
+function abrirEditorIconosRedes(){
+    normalizarRedesSociales();
+
+    const modal =
+        document.getElementById("socialNetworksModal");
+
+    if(!modal) return;
+
+    renderizarFilasEditorRedes();
+
+    const posicion =
+        document.getElementById("socialNetworksPosition");
+
+    if(posicion){
+        posicion.value =
+            configuracion.socialIconsPosition;
+    }
+
+    const picker =
+        document.getElementById("socialNetworksColorPicker");
+
+    if(picker){
+        const actual =
+            configuracion.socialIconsColor || "#ffffff";
+        picker.value =
+            rgbObjetoAHex(
+                obtenerRGBDesdeColor(actual)
+            );
+        picker.dataset.colorFinal = actual;
+    }
+
+    const backgroundPicker =
+        document.getElementById("socialNetworksBackgroundColorPicker");
+
+    if(backgroundPicker){
+        const actual =
+            configuracion.socialIconsBackgroundColor ||
+            "rgba(255,255,255,.07)";
+        backgroundPicker.value =
+            rgbObjetoAHex(
+                obtenerRGBDesdeColor(actual)
+            );
+        backgroundPicker.dataset.colorFinal = actual;
+    }
+
+    const borderPicker =
+        document.getElementById("socialNetworksBorderColorPicker");
+
+    if(borderPicker){
+        const actual =
+            configuracion.socialIconsBorderColor ||
+            "rgba(255,255,255,.35)";
+        borderPicker.value =
+            rgbObjetoAHex(
+                obtenerRGBDesdeColor(actual)
+            );
+        borderPicker.dataset.colorFinal = actual;
+    }
+
+    const socialIconsEnabled =
+        document.getElementById("socialIconsEnabled");
+
+    if(socialIconsEnabled){
+        socialIconsEnabled.checked =
+            configuracion.socialIconsEnabled !== false;
+    }
+
+    cerrarTodosLosModales();
+
+    modal.style.display = "flex";
+    guardarEstadoModal(modal);
+}
+
+function activarEditorIconosRedes(){
+    normalizarRedesSociales();
+
+    const abrir =
+        document.getElementById("socialNetworksAdminButton");
+
+    const modal =
+        document.getElementById("socialNetworksModal");
+
+    const select =
+        document.getElementById("socialNetworkSelect");
+
+    const add =
+        document.getElementById("addSocialNetwork");
+
+    const save =
+        document.getElementById("saveSocialNetworks");
+
+    const close =
+        document.getElementById("closeSocialNetworks");
+
+    const colorBtn =
+        document.getElementById("socialNetworksColor");
+
+    const picker =
+        document.getElementById("socialNetworksColorPicker");
+
+    const backgroundBtn =
+        document.getElementById("socialNetworksBackgroundColor");
+
+    const backgroundPicker =
+        document.getElementById("socialNetworksBackgroundColorPicker");
+
+    const borderBtn =
+        document.getElementById("socialNetworksBorderColor");
+
+    const borderPicker =
+        document.getElementById("socialNetworksBorderColorPicker");
+
+    if(abrir && abrir.dataset.bound !== "true"){
+        abrir.dataset.bound = "true";
+        abrir.onclick = e => {
+            e.preventDefault();
+            e.stopPropagation();
+            abrirEditorIconosRedes();
+        };
+    }
+
+    if(add && add.dataset.bound !== "true"){
+        add.dataset.bound = "true";
+        add.onclick = () => {
+            const rows =
+                document.querySelectorAll(
+                    "#socialNetworkRows .social-network-row"
+                );
+
+            if(rows.length >= 6){
+                mostrarNotificacionGuardado(
+                    "Límite alcanzado",
+                    "Solo puedes crear máximo 6 iconos de redes."
+                );
+                return;
+            }
+
+            const tipo =
+                select?.value || "web";
+
+            const fila =
+                crearFilaRedSocial(
+                    {tipo, url:""},
+                    rows.length
+                );
+
+            document.getElementById(
+                "socialNetworkRows"
+            )?.appendChild(fila);
+        };
+    }
+
+    if(save && save.dataset.bound !== "true"){
+        save.dataset.bound = "true";
+        save.onclick = async () => {
+            const filas =
+                leerFilasEditorRedes();
+
+            if(filas.length > 6){
+                mostrarNotificacionGuardado(
+                    "Límite alcanzado",
+                    "Solo puedes tener máximo 6 iconos."
+                );
+                return;
+            }
+
+            const posicion =
+                document.getElementById(
+                    "socialNetworksPosition"
+                )?.value || "top";
+
+            const socialIconsEnabled =
+                document.getElementById(
+                    "socialIconsEnabled"
+                );
+
+            configuracion.socialIconsEnabled =
+                socialIconsEnabled
+                    ? socialIconsEnabled.checked
+                    : configuracion.socialIconsEnabled !== false;
+
+            configuracion.socialIcons = filas;
+            configuracion.socialIconsPosition = posicion;
+
+            aplicarEstiloIconosRedes();
+            renderizarIconosRedes();
+
+            await guardarConfiguracionServidor();
+
+            cerrarModalDefinitivamente(modal);
+
+            mostrarNotificacionGuardado(
+                "Cambios guardados",
+                "Los iconos de redes fueron actualizados."
+            );
+        };
+    }
+
+    if(colorBtn && colorBtn.dataset.bound !== "true"){
+        colorBtn.dataset.bound = "true";
+
+        colorBtn.onclick = e => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if(!picker) return;
+
+            abrirEditorColor({
+                picker,
+                despuesDeAplicar: async valor => {
+                    configuracion.socialIconsColor = valor;
+                    picker.dataset.colorFinal = valor;
+                    aplicarEstiloIconosRedes();
+                    renderizarIconosRedes();
+                    await guardarConfiguracionServidor();
+                }
+            });
+        };
+    }
+
+    if(
+        backgroundBtn &&
+        backgroundPicker &&
+        backgroundBtn.dataset.bound !== "true"
+    ){
+        backgroundBtn.dataset.bound = "true";
+
+        backgroundBtn.onclick = e => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            abrirEditorColor({
+                picker: backgroundPicker,
+                despuesDeAplicar: async valor => {
+                    configuracion.socialIconsBackgroundColor = valor;
+                    backgroundPicker.dataset.colorFinal = valor;
+                    aplicarEstiloIconosRedes();
+                    renderizarIconosRedes();
+                    await guardarConfiguracionServidor();
+                }
+            });
+        };
+    }
+
+    if(
+        borderBtn &&
+        borderPicker &&
+        borderBtn.dataset.bound !== "true"
+    ){
+        borderBtn.dataset.bound = "true";
+
+        borderBtn.onclick = e => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            abrirEditorColor({
+                picker: borderPicker,
+                despuesDeAplicar: async valor => {
+                    configuracion.socialIconsBorderColor = valor;
+                    borderPicker.dataset.colorFinal = valor;
+                    aplicarEstiloIconosRedes();
+                    renderizarIconosRedes();
+                    await guardarConfiguracionServidor();
+                }
+            });
+        };
+    }
+
+    if(close && close.dataset.bound !== "true"){
+        close.dataset.bound = "true";
+
+        close.onclick = () => {
+
+            /*-----------------------------------------
+                ADVERTENCIA SI EXISTEN CAMBIOS
+            -----------------------------------------*/
+            if(modalTieneCambios()){
+
+                mostrarAdvertenciaCambios(() => {
+
+                    /* Restaurar todo lo que no se guardó */
+                    restaurarEstadoModal();
+
+                    /* Cerrar definitivamente */
+                    cerrarModalDefinitivamente(modal);
+
+                });
+
+                return;
+            }
+
+            cerrarModalDefinitivamente(modal);
+        };
+    }
+
+    renderizarIconosRedes();
+}
+
+/*====================================================
+    MODO CELULAR: PRIORIZAR ORIENTACIÓN VERTICAL
+====================================================*/
+
+function intentarBloquearOrientacionVertical(){
+    if(!window.matchMedia("(max-width: 768px)").matches){
+        return;
+    }
+
+    try{
+        const orientacion =
+            window.screen &&
+            window.screen.orientation;
+
+        if(
+            orientacion &&
+            typeof orientacion.lock === "function"
+        ){
+            orientacion.lock("portrait-primary").catch(() => {});
+        }
+    }catch(error){
+        // Algunos navegadores solo permiten lock() en PWA/fullscreen.
+    }
+}
+
+window.addEventListener(
+    "orientationchange",
+    intentarBloquearOrientacionVertical,
+    {passive:true}
+);
+
+window.addEventListener(
+    "resize",
+    intentarBloquearOrientacionVertical,
+    {passive:true}
+);
+
+async function inicializarAplicacion() {
+
+ 
+ try{
+/*----------------------------------
+        PASO 0
+----------------------------------*/
+
+await cargarConfiguracion();
+
+/*----------------------------------
+    NUEVO PASO
+    CARGAR TODAS LAS FUENTES
+----------------------------------*/
+
+await cargarFuentes();
+
+/*----------------------------------
+        PASO 1
+----------------------------------*/
+
+restaurarTema();
+    /*----------------------------------
+        PASO 2
+    ----------------------------------*/
+
+    restaurarLogo();
+    activarSelectorFondoLogo();
+
+    /*----------------------------------
+        PASO 3
+    ----------------------------------*/
+
+    restaurarTitulo();
+
+
+
+if (configuracion.titleFont) {
+
+    const existe = [...fuenteTitulo.options].some(
+        op => op.value === configuracion.titleFont
+    );
+
+    if (existe) {
+
+        fuenteTitulo.value = configuracion.titleFont;
+
+        title.style.fontFamily = configuracion.titleFont;
+
+        subtitle.style.fontFamily = configuracion.titleFont;
+
+    }
+
+    
+
+}
+
+
+
+
+    /*----------------------------------
+        PASO 4
+    ----------------------------------*/
+
+
+    restaurarColores();
+
+
+
+
+    /*----------------------------------
+        PASO 5
+    ----------------------------------*/
+
+    restaurarFuente();
+
+    /*----------------------------------
+        PASO 6
+    ----------------------------------*/
+
+    restaurarRadius();
+
+    /*----------------------------------
+        PASO 7
+    ----------------------------------*/
+
+    restaurarVelocidadAnimaciones();
+
+    /*----------------------------------
+        PASO 8
+    ----------------------------------*/
+
+    restaurarGlass();
+
+    /*----------------------------------
+        PASO 9
+    ----------------------------------*/
+
+    restaurarNeumorphism();
+
+    /*----------------------------------
+        PASO 10
+        ACTIVAR CAMPOS DINÁMICOS DEL EDITOR
+    ----------------------------------*/
+
+    activarCamposDinamicosEditor();
+
+    await cargarBotones();
+
+    /*----------------------------------
+        PASO 11
+    ----------------------------------*/
+
+    activarBotones();
+
+    /*----------------------------------
+        PASO 12
+    ----------------------------------*/
+
+    activarLinks();
+
+    /*----------------------------------
+        PASO 13
+    ----------------------------------*/
+
+    activarDragDrop();
+
+    /*----------------------------------
+        PASO 14
+    ----------------------------------*/    
+    
+    await cargarEstadoAdmin();
+
+    /*----------------------------------
+        REDES SOCIALES
+    ----------------------------------*/
+    normalizarRedesSociales();
+    aplicarEstiloIconosRedes();
+    activarEditorIconosRedes();
+    renderizarIconosRedes();
+    activarRecordatoriosUsuario();
+    iniciarActualizacionRecordatorios();
+    intentarBloquearOrientacionVertical();
+
+    /*----------------------------------
+    MÚSICA DEL SITIO
+----------------------------------*/
+
+await iniciarMusicaUsuario();
+
+ }catch(error){
+
+    console.error(
+        "Error inicializando la aplicación:",
+        error
+    );
+
+ }finally{
+
+    document.body.classList.remove("app-loading");
+
+    document.body.classList.add("app-ready");
+
+ }
+
+}
+
+/*====================================================
+        INICIO DEL SISTEMA
+====================================================*/
+
+window.addEventListener(
+
+    "DOMContentLoaded",
+
+    async ()=>{
+
+        await inicializarAplicacion();
+        setTimeout(() => {
+
+    const d = document.getElementById("description");
+
+
+
+}, 1000);
+
+    }
+
+);
+
+let guardandoConfiguracion = false;
+
+
+
+
+async function guardarConfiguracionServidor(){
+
+    if(guardandoConfiguracion){
+
+        return;
+
+    }
+
+    guardandoConfiguracion = true;
+
+    try{
+
+        await fetch("/config",{
+
+            method:"POST",
+
+            headers:{
+                "Content-Type":"application/json"
+            },
+
+            body:JSON.stringify(configuracion)
+
+        });
+
+    }finally{
+
+        guardandoConfiguracion = false;
+
+    }
+
+}
+
+
+function actualizarColorFooter() {
+
+
+      // Solo en celulares
+    if (window.innerWidth > 768) {
+
+        return;
+
+    }
+
+    const card = document.querySelector(".card");
+    const footer = document.querySelector(".creator-footer");
+
+    if (!card || !footer) return;
+
+    const enlace = footer.querySelector("a");
+    const logo = footer.querySelector("img");
+
+    const color = getComputedStyle(card).backgroundColor;
+
+    const rgb = color.match(/\d+/g);
+
+    if (!rgb) return;
+
+    const r = Number(rgb[0]);
+    const g = Number(rgb[1]);
+    const b = Number(rgb[2]);
+
+    const luminosidad = (r * 299 + g * 587 + b * 114) / 1000;
+
+    if (luminosidad > 170) {
+
+        enlace.style.color = "#000";
+        enlace.style.textShadow = "0 1px 3px rgba(255,255,255,.5)";
+        logo.style.borderColor = "#000";
+
+    } else {
+
+        enlace.style.color = "#fff";
+        enlace.style.textShadow = "0 2px 8px rgba(0,0,0,.8)";
+        logo.style.borderColor = "#fff";
+
+    }
+
+}
+
+
+
+window.addEventListener("resize", () => {
+
+    if (window.innerWidth <= 768) {
+
+        actualizarColorFooter();
+
+    } else {
+
+        const enlace = document.querySelector(".creator-footer a");
+        const logo = document.querySelector("#footerLogo");
+
+        enlace.style.color = "";
+        enlace.style.textShadow = "";
+        logo.style.borderColor = "";
+
+    }
+
+});
+
+
+/*====================================================*
+    CREAR PATRÓN ESCALONADO SVG
+*====================================================*/
+
+function crearPatronMarcaAgua(){
+
+    const contenedor =
+        document.querySelector(
+            ".card-watermark-container"
+        );
+
+    if(!contenedor){
+        return;
+    }
+
+    /*
+        Limpiar patrón anterior
+    */
+
+    contenedor.innerHTML = "";
+
+    /*
+        Si no existe SVG,
+        no crear nada.
+    */
+
+    if(!configuracion.cardWatermark){
+        return;
+    }
+
+    /*
+        TAMAÑO DEL SVG
+    */
+
+    const tamanoLogo = 65;
+
+    /*
+        DISTANCIA ENTRE LOGOS
+    */
+
+    const separacionX = 180;
+
+    const separacionY = 140;
+
+    /*
+        Área suficientemente grande
+    */
+
+    const ancho =
+        contenedor.offsetWidth ||
+        1000;
+
+    const alto =
+        contenedor.offsetHeight ||
+        1000;
+
+    /*
+        Cantidad de columnas
+    */
+
+    const columnas =
+        Math.ceil(
+            ancho / separacionX
+        ) + 4;
+
+    /*
+        Cantidad de filas
+    */
+
+    const filas =
+        Math.ceil(
+            alto / separacionY
+        ) + 4;
+
+    /*
+        Crear filas
+    */
+
+    for(
+        let fila = -2;
+        fila < filas;
+        fila++
+    ){
+
+        /*
+            ESCALONAMIENTO
+        */
+
+        const desplazamiento =
+            fila % 2 === 0
+                ? 0
+                : separacionX / 2;
+
+        for(
+            let columna = -2;
+            columna < columnas;
+            columna++
+        ){
+
+            const logo =
+                document.createElement(
+                    "img"
+                );
+
+            logo.className =
+                "card-watermark-item";
+
+            /*
+                ANIMACIÓN ESCALONADA
+            */
+
+            logo.style.animationDelay =
+                (
+                    (fila + columna) *
+                    -0.45
+                ) + "s";
+
+            /*
+                SVG
+            */
+
+            logo.src =
+                configuracion.cardWatermark;
+
+            /*
+                Posición horizontal
+            */
+
+            logo.style.left =
+                (
+                    columna *
+                    separacionX
+                    +
+                    desplazamiento
+                ) + "px";
+
+            /*
+                Posición vertical
+            */
+
+            logo.style.top =
+                (
+                    fila *
+                    separacionY
+                ) + "px";
+
+            /*
+                Tamaño
+            */
+
+            logo.style.width =
+                tamanoLogo + "px";
+
+            logo.style.height =
+                tamanoLogo + "px";
+
+            /*
+                Agregar al contenedor
+            */
+
+            contenedor.appendChild(
+                logo
+            );
+
+        }
+
+    }
+
+}
+
+
+/*====================================================
+    ACTUALIZAR PATRÓN AL CAMBIAR TAMAÑO
+====================================================*/
+
+window.addEventListener(
+    "resize",
+    () => {
+
+        if(
+            configuracion.cardWatermark
+        ){
+
+            crearPatronMarcaAgua();
+
+        }
+
+    }
+);
+
+
+
+
+
+
+/*====================================================
+    ABRIR EDITOR DE ESTADÍSTICAS
+====================================================*/
+
+if (cardStatsAdminButton) {
+
+    cardStatsAdminButton.onclick =
+        async () => {
+
+            try {
+
+                /*
+                    Verificar nuevamente
+                    que realmente sea admin.
+                */
+
+                const respuesta =
+                    await fetch(
+                        "/admin/status",
+                        {
+                            cache: "no-store"
+                        }
+                    );
+
+
+                const datos =
+                    await respuesta.json();
+
+
+                if (!datos.admin) {
+
+                    alert(
+                        "No autorizado."
+                    );
+
+                    return;
+
+                }
+
+
+
+
+                /*
+                    Necesitamos los tres
+                    contadores, así que usamos
+                    una ruta administrativa.
+                */
+
+                const stats =
+                    await obtenerEstadisticasAdmin();
+
+
+                adminViewsCounter.value =
+                    stats.views;
+
+                adminLikesCounter.value =
+                    stats.likes;
+
+                adminSharesCounter.value =
+                    stats.shares;
+
+                    await cargarPosicionesCardStats();
+
+                cargarPosicionesEnModal();
+
+
+                cerrarTodosLosModales();
+
+
+                cardStatsModal.style.display =
+                    "flex";
+
+
+                guardarEstadoModal(
+                    cardStatsModal
+                );
+
+
+            } catch (error) {
+
+                console.error(
+                    "Error abriendo editor de estadísticas:",
+                    error
+                );
+
+                alert(
+                    "No se pudieron cargar las estadísticas."
+                );
+
+            }
+
+        };
+
+}
+
+
+/*====================================================
+    OBTENER ESTADÍSTICAS ADMIN
+====================================================*/
+
+async function obtenerEstadisticasAdmin() {
+
+    const respuesta =
+        await fetch(
+            "/admin/stats",
+            {
+                cache: "no-store"
+            }
+        );
+
+
+    if (!respuesta.ok) {
+
+        throw new Error(
+            `HTTP ${respuesta.status}`
+        );
+
+    }
+
+
+    const datos =
+        await respuesta.json();
+
+
+    if (!datos.ok) {
+
+        throw new Error(
+            datos.error ||
+            "No se pudieron obtener estadísticas."
+        );
+
+    }
+
+
+    return datos;
+
+}
+
+/*====================================================
+    GUARDAR ESTADÍSTICAS
+====================================================*/
+
+if (saveCardStats) {
+
+    saveCardStats.onclick =
+        async () => {
+
+            const views =
+                Number(
+                    adminViewsCounter.value
+                );
+
+            const likes =
+                Number(
+                    adminLikesCounter.value
+                );
+
+            const shares =
+                Number(
+                    adminSharesCounter.value
+                );
+
+
+            /*
+                VALIDACIONES
+            */
+
+            if (
+                !Number.isInteger(views) ||
+                views < 0 ||
+                views > 1000000000
+            ) {
+
+                alert(
+                    "Las visualizaciones deben ser un número entero entre 0 y 1,000,000,000."
+                );
+
+                adminViewsCounter.focus();
+
+                return;
+
+            }
+
+
+            if (
+                !Number.isInteger(likes) ||
+                likes < 0 ||
+                likes > 1000000000
+            ) {
+
+                alert(
+                    "Los likes deben ser un número entero entre 0 y 1,000,000,000."
+                );
+
+                adminLikesCounter.focus();
+
+                return;
+
+            }
+
+
+            if (
+                !Number.isInteger(shares) ||
+                shares < 0 ||
+                shares > 1000000000
+            ) {
+
+                alert(
+                    "Los compartidos deben ser un número entero entre 0 y 1,000,000,000."
+                );
+
+                adminSharesCounter.focus();
+
+                return;
+
+            }
+
+
+            try {
+
+                const respuesta =
+                    await fetch(
+                        "/admin/stats",
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+
+                            body:
+                                JSON.stringify({
+                                    views,
+                                    likes,
+                                    shares
+                                })
+                        }
+                    );
+
+
+                const datos =
+                    await respuesta.json();
+
+
+                if (
+                    !respuesta.ok ||
+                    !datos.ok
+                ) {
+
+                    throw new Error(
+                        datos.error ||
+                        "No se pudieron guardar las estadísticas."
+                    );
+
+                }
+
+
+                /*
+                    ACTUALIZAR PANTALLA
+                */
+
+                cardViewsCounter.textContent =
+                    datos.views;
+
+                cardLikesCounter.textContent =
+                    datos.likes;
+
+                cardSharesCounter.textContent =
+                    datos.shares;
+
+
+                /*
+                    NOTIFICACIÓN
+                */
+
+                mostrarNotificacionGuardado(
+                    "Estadísticas guardadas",
+                    "Los contadores se actualizaron correctamente."
+                );
+
+
+                /*
+                    CERRAR SIN ADVERTENCIA
+                */
+
+                cerrarModalDefinitivamente(
+                    cardStatsModal
+                );
+
+
+            } catch (error) {
+
+                console.error(
+                    "Error guardando estadísticas:",
+                    error
+                );
+
+
+                alert(
+                    error.message ||
+                    "No se pudieron guardar las estadísticas."
+                );
+
+            }
+
+        };
+
+}
+
+
+/*====================================================
+    REINICIAR ESTADÍSTICAS
+====================================================*/
+
+if (resetCardStats) {
+
+    resetCardStats.onclick =
+        () => {
+
+            const confirmar =
+                confirm(
+                    "¿Seguro que deseas reiniciar las visualizaciones, likes y compartidos a 0?"
+                );
+
+
+            if (!confirmar) {
+
+                return;
+
+            }
+
+
+            adminViewsCounter.value =
+                0;
+
+            adminLikesCounter.value =
+                0;
+
+            adminSharesCounter.value =
+                0;
+
+        };
+
+}
+
+
+
+
+
+/*====================================================
+    ANIMACIÓN DE MUCHOS PULGARES
+====================================================*/
+
+function animarPulgares() {
+
+    const cantidad = 18;
+
+
+    for (
+        let i = 0;
+        i < cantidad;
+        i++
+    ) {
+
+        const pulgar =
+            document.createElement(
+                "div"
+            );
+
+
+        pulgar.className =
+            "like-float";
+
+/*
+        pulgar.innerHTML =
+            "👍🏼"; */
+
+/*=========================================
+    ICONO PULGAR DENTRO DE BURBUJA
+=========================================*/
+
+pulgar.innerHTML = `
+    <span class="like-bubble">
+        <i class="fa-solid fa-thumbs-up"></i>
+    </span>
+`;
+
+
+        /*=================================
+            POSICIÓN HORIZONTAL ALEATORIA
+        =================================*/
+
+        pulgar.style.left =
+            (
+                Math.random() * 100
+            ) + "%";
+
+
+        /*=================================
+            TAMAÑO ALEATORIO
+        =================================*/
+
+        pulgar.style.fontSize =
+            (
+                18 +
+                Math.random() * 22
+            ) + "px";
+
+
+        /*=================================
+            DURACIÓN ALEATORIA
+        =================================*/
+
+        pulgar.style.animationDuration =
+            (
+                1.8 +
+                Math.random() * 1.7
+            ) + "s";
+
+
+        /*=================================
+            RETRASO
+        =================================*/
+
+        pulgar.style.animationDelay =
+            (
+                Math.random() * 0.5
+            ) + "s";
+
+
+        document.body.appendChild(
+            pulgar
+        );
+
+
+        setTimeout(() => {
+
+            pulgar.remove();
+
+        }, 4000);
+
+    }
+
+}
+
+
+
+
+/*====================================================
+    BLOQUEO DE ORIENTACIÓN VERTICAL EN CELULARES
+====================================================*/
+
+async function bloquearOrientacionVertical(){
+
+    if(!window.matchMedia("(max-width: 768px)").matches){
+        return;
+    }
+
+    try{
+
+        if(screen.orientation &&
+           typeof screen.orientation.lock === "function"){
+
+            await screen.orientation.lock("portrait");
+
+        }
+
+    }catch(error){
+
+        /* Algunos navegadores solo permiten bloquear
+           la orientación en pantalla completa o PWA. */
+
+    }
+
+}
+
+bloquearOrientacionVertical();
+
+window.addEventListener("resize",()=>{
+    bloquearOrientacionVertical();
+});
