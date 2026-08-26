@@ -10817,6 +10817,18 @@ function renderizarInformacionBoton(card){
                 }
 
                 ${
+                    infoNombre
+                    ? `<strong class="social-info-name">${escaparHTML(infoNombre)}</strong>`
+                    : ""
+                }
+
+                ${
+                    infoDescripcion
+                    ? `<span class="social-info-description">${escaparHTML(infoDescripcion)}</span>`
+                    : ""
+                }
+
+                ${
                     youtubeDescription
                     ? `<span class="social-info-description">${escaparHTML(youtubeDescription)}</span>`
                     : ""
@@ -10867,8 +10879,14 @@ function renderizarInformacionBoton(card){
                 </div>
 
                 ${
-                    descripcion
-                    ? `<span class="social-info-description">${escaparHTML(descripcion)}</span>`
+                    infoNombre
+                    ? `<strong class="social-info-name">${escaparHTML(infoNombre)}</strong>`
+                    : ""
+                }
+
+                ${
+                    infoDescripcion
+                    ? `<span class="social-info-description">${escaparHTML(infoDescripcion)}</span>`
                     : ""
                 }
             </div>
@@ -10894,8 +10912,14 @@ function renderizarInformacionBoton(card){
                 }
 
                 <strong class="social-info-name">
-                    ${escaparHTML(nombre || "WhatsApp")}
+                    ${escaparHTML(infoNombre || nombre || "WhatsApp")}
                 </strong>
+
+                ${
+                    infoDescripcion
+                    ? `<span class="social-info-description">${escaparHTML(infoDescripcion)}</span>`
+                    : ""
+                }
 
                 <span class="social-info-user">
                     ${escaparHTML(telefono || "Número no registrado")}
@@ -10937,8 +10961,14 @@ function renderizarInformacionBoton(card){
                 ${avatar}
 
                 <strong class="social-info-name">
-                    ${escaparHTML(nombre || "Sin nombre")}
+                    ${escaparHTML(infoNombre || nombre || "Sin nombre")}
                 </strong>
+
+                ${
+                    infoDescripcion
+                    ? `<span class="social-info-description">${escaparHTML(infoDescripcion)}</span>`
+                    : ""
+                }
 
                 ${
                     usuario
