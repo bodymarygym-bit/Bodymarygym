@@ -233,9 +233,9 @@ body{
 
 .top-buttons button{
 
-    width:52px;
+    width:46px;
 
-    height:52px;
+    height:46px;
 
     border:none;
 
@@ -259,6 +259,12 @@ body{
 
     transform:rotate(20deg) scale(1.1);
 
+}
+
+/* Botón flotante circular blanco */
+#addLink{
+    width:46px !important;
+    height:46px !important;
 }
 
 /*==========================
@@ -2807,8 +2813,8 @@ input[type="range"]::-moz-range-thumb{
 
       /* Botón flotante */
     #addLink{
-        width: 40px !important;
-        height: 40px !important;
+        width: 38px !important;
+        height: 38px !important;
         bottom: 10px !important;
         right: 15px !important;
         font-size: 16px !important;
@@ -5446,8 +5452,8 @@ input[type="checkbox"]:checked
 @media (max-width: 768px) {
 
     .music-admin-button {
-        width: 44px;
-        height: 44px;
+        width: 38px;
+        height: 38px;
         left: 15px;
         bottom: 15px;
         font-size: 17px;
@@ -5466,8 +5472,8 @@ input[type="checkbox"]:checked
 @media (max-width: 480px) {
 
     .music-admin-button {
-        width: 44px;
-        height: 44px;
+        width: 38px;
+        height: 38px;
         left: 15px;
         bottom: 15px;
         font-size: 17px;

@@ -2305,6 +2305,13 @@ function obtenerColorFinal(){
  * Guarda la información del elemento que
  * actualmente está siendo editado.
  */
+const infoPanelColorPickerState = {
+    value: "rgba(32, 32, 32, 0.82)",
+    dataset: {
+        colorFinal: "rgba(32, 32, 32, 0.82)"
+    }
+};
+
 const editorColorActivo = {
 
     picker: null,
@@ -11157,8 +11164,8 @@ function cargarCamposSocialesEditor(card){
     const panelTextColor =
         document.getElementById("linkPanelTextColor");
 
-    const infoPanelBackground =
-        document.getElementById("linkInfoPanelBackground");
+    const infoPanelBackgroundSelector =
+        document.getElementById("linkInfoPanelBackgroundSelector");
 
     if(panelColor){
         const valor =
@@ -11184,16 +11191,19 @@ function cargarCamposSocialesEditor(card){
             );
     }
 
-    if(infoPanelBackground){
-        const valor =
-            card.dataset.socialInfoPanelBackground ||
-            "rgba(32,32,32,.82)";
+    const infoPanelBackground =
+        card.dataset.socialInfoPanelBackground ||
+        "rgba(32,32,32,.82)";
 
-        infoPanelBackground.dataset.colorFinal = valor;
-        infoPanelBackground.value =
-            rgbObjetoAHex(
-                obtenerRGBDesdeColor(valor)
-            );
+    infoPanelColorPickerState.dataset.colorFinal = infoPanelBackground;
+    infoPanelColorPickerState.value = infoPanelBackground;
+
+    if(infoPanelBackgroundSelector){
+        actualizarSelectorUniversalColor(
+            infoPanelBackgroundSelector,
+            infoPanelColorPickerState,
+            infoPanelBackground
+        );
     }
 
     cargarCamposRecordatorio(card);
@@ -11267,9 +11277,6 @@ function guardarCamposSocialesEditor(card){
     const panelTextColor =
         document.getElementById("linkPanelTextColor");
 
-    const infoPanelBackground =
-        document.getElementById("linkInfoPanelBackground");
-
     card.dataset.socialPanelColor =
         panelColor?.dataset.colorFinal ||
         panelColor?.value ||
@@ -11282,8 +11289,7 @@ function guardarCamposSocialesEditor(card){
         "#ffffff";
 
     card.dataset.socialInfoPanelBackground =
-        infoPanelBackground?.dataset.colorFinal ||
-        infoPanelBackground?.value ||
+        infoPanelColorPickerState.dataset.colorFinal ||
         card.dataset.socialInfoPanelBackground ||
         "rgba(32,32,32,.82)";
 
@@ -11524,7 +11530,7 @@ function activarColoresPanelEditor(){
         document.getElementById("linkPanelColorSelector");
 
     const fondoPanelInformacion =
-        document.getElementById("linkInfoPanelBackground");
+        infoPanelColorPickerState;
 
     const fondoPanelInformacionBtn =
         document.getElementById("linkInfoPanelBackgroundSelector");
