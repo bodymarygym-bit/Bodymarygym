@@ -1,9 +1,9 @@
 {
     "theme": "light",
-    "logo": "/uploads/logo-1787772145645.jpeg",
+    "logo": "/uploads/logo-1788046743007.jpg",
     "logoSize": 246,
-    "title": "Jaime Martinez",
-    "subtitle": "Img. de Sistemas",
+    "title": "Bodymarygym",
+    "subtitle": "🏋️ Entrena. 💥 Supérate. 🏆",
     "logoGradient": [
         "#00051e",
         "#00051e",
@@ -31,23 +31,23 @@
     "neumorphism": false,
     "admin": false,
     "background": "#000000",
-    "card": "#000000",
-    "button": "#292929",
+    "card": "#0400ff",
+    "button": "#000000",
     "border": "#7a7a7a",
-    "shadow": "#949494",
-    "iconColor": "#ffffff",
-    "text": "#FFFFFF",
+    "shadow": "#E3E3E3",
+    "iconColor": "#0400FF",
+    "text": "#0400FF",
     "textSecondary": "#FFFFFF",
-    "cardImage": "/uploads/fondo-card-1787443531557.png",
-    "titleFont": "Miracle History",
+    "cardImage": "/uploads/fondo-card-1788047050017.png",
+    "titleFont": "Roboto-Bold",
     "titleSize": 46,
     "subtitleSize": 22,
-    "description": "Con experiencia en análisis, diseño y optimización de bases de datos y procesos tecnológicos. \nEnfoque en la mejora de la eficiencia empresarial mediante el uso de software seguro y sistemas de red.",
-    "descriptionAlign": "justify",
+    "description": "🔥 NO ESPERES A ESTAR MOTIVADO. EMPIEZA Y CREA TU MEJOR VERSIÓN. 💪\nUbicados en Maracay edo Aragua Av Constitución...",
+    "descriptionAlign": "center",
     "descriptionTextColor": "#FFFFFF",
-    "descriptionBackgroundColor": "rgba(0, 0, 0, 0.37)",
-    "linkTextColor": "#00051E",
-    "cardColor1": "#000000",
+    "descriptionBackgroundColor": "rgba(4, 0, 255, 0.40)",
+    "linkTextColor": "#0400FF",
+    "cardColor1": "#0400ff",
     "cardColor2": "#000000",
     "cardColor3": "#000000",
     "cardWatermark": "/uploads/card-watermark.svg",
@@ -56,27 +56,19 @@
     "socialIcons": [
         {
             "tipo": "whatsapp",
-            "url": "https://api.whatsapp.com/send?phone=51960722146&text=hola%20buenas.%20necesito%20orientaci%C3%B3n%20t%C3%A9cnica"
-        },
-        {
-            "tipo": "facebook",
-            "url": "https://www.facebook.com/profile.php?id=61588687977605"
+            "url": "https://api.whatsapp.com/send?phone=584224580450&text=BodyMarygym%20"
         },
         {
             "tipo": "instagram",
-            "url": "https://www.instagram.com/jaime_abraham_martinez"
+            "url": "https://www.instagram.com/bodymarygym/"
         },
         {
             "tipo": "tiktok",
-            "url": "https://www.tiktok.com/@jaime_abraham_martinez"
-        },
-        {
-            "tipo": "youtube",
-            "url": "https://www.youtube.com/@JaimeMartinezQA"
+            "url": "https://www.tiktok.com/@bodymarigym1?_r=1&_t=ZS-99DWyrpZQkD"
         }
     ],
     "socialIconsEnabled": true,
-    "socialIconsColor": "#FFFFFF",
+    "socialIconsColor": "#0400FF",
     "socialIconsPosition": "top",
     "themeBaseColor": "#E0B106",
     "themePalette": {
@@ -133,7 +125,7 @@
     "themeColorsEnabled": false,
     "descriptionFont": "Verdana,sans-serif",
     "descriptionSize": 14,
-    "socialIconsBackgroundColor": "#545454",
-    "socialIconsBorderColor": "rgba(255,255,255,.35)",
+    "socialIconsBackgroundColor": "#000000",
+    "socialIconsBorderColor": "#0400FF",
     "logoBackgroundColor": "transparent"
 }
